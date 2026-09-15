@@ -151,6 +151,7 @@ function initializeApp() {
     populateAllSelects();
     setupExpenseForm();
     setupQuoteForm();
+    setupSalaryInput();
     setupFilters();
     setupMobileMenu();
 
@@ -1798,28 +1799,61 @@ function renderQuotes() {
                     ${priceRows}
                 </div>
 
+            `;
 
-                <div class="quote-summary">
+
+            if (group.length > 1) {
+
+                const summary =
+                    document.createElement(
+                        "div"
+                    );
+
+                summary.className =
+                    "quote-summary";
+
+                summary.innerHTML = `
 
                     <span>
-                        ${
-                            group.length > 1
-                                ? `Economia possível comparando os preços`
-                                : `Valor planejado da compra`
-                        }
+                        Economia possível comparando os preços
                     </span>
 
                     <strong>
-                        ${
-                            group.length > 1
-                                ? formatCurrency(saving)
-                                : formatCurrency(cheapest)
-                        }
+                        ${formatCurrency(saving)}
                     </strong>
 
-                </div>
+                `;
 
-            `;
+                card.appendChild(
+                    summary
+                );
+
+            } else {
+
+                const summary =
+                    document.createElement(
+                        "div"
+                    );
+
+                summary.className =
+                    "quote-summary";
+
+                summary.innerHTML = `
+
+                    <span>
+                        Valor planejado da compra
+                    </span>
+
+                    <strong>
+                        ${formatCurrency(cheapest)}
+                    </strong>
+
+                `;
+
+                card.appendChild(
+                    summary
+                );
+            }
 
 
             container.appendChild(
@@ -2619,6 +2653,139 @@ function calculatePossibleSavings() {
    SALÁRIO / SALDO
 ========================================================= */
 
+function setupSalaryInput() {
+
+    const input =
+        document.getElementById(
+            "salaryInput"
+        );
+
+    if (!input || input.dataset.salaryReady === "true") {
+        return;
+    }
+
+    input.dataset.salaryReady = "true";
+
+
+    input.addEventListener(
+        "input",
+        () => {
+
+            const digits =
+                String(input.value || "")
+                    .replace(/\D/g, "");
+
+            if (!digits) {
+
+                input.value = "";
+
+                return;
+            }
+
+
+            const number =
+                Number(digits);
+
+
+            if (!Number.isFinite(number)) {
+
+                input.value = "";
+
+                return;
+            }
+
+
+            input.value =
+                formatSalaryInteger(
+                    number
+                );
+
+
+            input.setSelectionRange(
+                input.value.length,
+                input.value.length
+            );
+        }
+    );
+
+
+    input.addEventListener(
+        "blur",
+        () => {
+
+            const value =
+                parseSalaryValue(
+                    input.value
+                );
+
+
+            input.value =
+                value > 0
+                    ? formatCurrency(value)
+                    : "";
+        }
+    );
+}
+
+
+function formatSalaryInteger(value) {
+
+    return new Intl.NumberFormat(
+        "en-US",
+        {
+            maximumFractionDigits: 0
+        }
+    ).format(
+        Number(value) || 0
+    );
+}
+
+
+function parseSalaryValue(value) {
+
+    if (
+        typeof value ===
+        "number"
+    ) {
+
+        return Number.isFinite(value)
+            ? value
+            : 0;
+    }
+
+
+    if (!value) {
+        return 0;
+    }
+
+
+    const text =
+        String(value)
+            .trim();
+
+
+    if (!text) {
+        return 0;
+    }
+
+
+    const digits =
+        text.replace(
+            /\D/g,
+            ""
+        );
+
+
+    const number =
+        Number(digits);
+
+
+    return Number.isFinite(number)
+        ? number
+        : 0;
+}
+
+
 function saveSalary() {
 
     const input =
@@ -2632,7 +2799,7 @@ function saveSalary() {
 
 
     const value =
-        parseMoney(
+        parseSalaryValue(
             input.value
         );
 
@@ -2656,8 +2823,11 @@ function saveSalary() {
 
     updateDashboard();
 
+
     input.value =
-        formatCurrency(value);
+        formatCurrency(
+            value
+        );
 
 
     showToast(
