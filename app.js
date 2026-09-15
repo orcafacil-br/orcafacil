@@ -1,23 +1,21 @@
-/* =========================================================
+/* =====================================================
    ORÇAFÁCIL
-   APP.JS
-========================================================= */
+   Aplicação principal
+===================================================== */
 
 
-/* =========================================================
+/* =====================================================
    CONFIGURAÇÃO
-========================================================= */
+===================================================== */
 
-const STORAGE_KEY =
-    "orcafacil_data_v2";
-
-const QUOTES_STORAGE_KEY =
-    "orcafacil_quotes_v1";
-
+const STORAGE_KEY = "orcafacil_data_v3";
+const QUOTES_STORAGE_KEY = "orcafacil_quotes_v2";
+const THEME_KEY = "orcafacil_theme";
 
 let appData = {
     expenses: [],
-    budgets: []
+    budgets: [],
+    monthlyBalance: 0
 };
 
 let quotes = [];
@@ -25,12 +23,10 @@ let quotes = [];
 let editingExpenseId = null;
 let editingQuoteId = null;
 
-let toastTimeout;
 
-
-/* =========================================================
+/* =====================================================
    CATEGORIAS
-========================================================= */
+===================================================== */
 
 const categories = {
 
@@ -129,84 +125,69 @@ const categories = {
 };
 
 
-/* =========================================================
+/* =====================================================
    INICIALIZAÇÃO
-========================================================= */
+===================================================== */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+document.addEventListener("DOMContentLoaded", initializeApp);
 
-        loadData();
+function initializeApp() {
 
-        loadQuotes();
+    loadData();
+    loadQuotes();
+    loadTheme();
 
-        loadTheme();
+    setupNavigation();
+    setupMobileMenu();
 
-        setupNavigation();
+    populateCategorySelects();
+    populateQuoteCategorySelect();
 
-        setupMobileMenu();
+    setupExpenseForm();
+    setupQuoteForm();
 
-        populateCategorySelects();
+    setupFilters();
+    setupBudgetControl();
+    setupModalEvents();
 
-        populateQuoteCategorySelect();
+    renderCategories();
+    renderExpenses();
+    renderQuotes();
 
-        setupExpenseForm();
-
-        setupQuoteForm();
-
-        setupFilters();
-
-        renderCategories();
-
-        renderExpenses();
-
-        renderQuotes();
-
-        updateDashboard();
-
-        setupModalEvents();
-
-    }
-);
+    updateDashboard();
+}
 
 
-/* =========================================================
-   STORAGE — DESPESAS
-========================================================= */
+/* =====================================================
+   STORAGE
+===================================================== */
 
 function loadData() {
 
     try {
 
         const saved =
-            localStorage.getItem(
-                STORAGE_KEY
-            );
+            localStorage.getItem(STORAGE_KEY);
 
         if (!saved) {
             return;
         }
 
-        const parsed =
-            JSON.parse(saved);
+        const parsed = JSON.parse(saved);
 
         appData = {
-
             expenses:
-                Array.isArray(
-                    parsed.expenses
-                )
+                Array.isArray(parsed.expenses)
                     ? parsed.expenses
                     : [],
 
             budgets:
-                Array.isArray(
-                    parsed.budgets
-                )
+                Array.isArray(parsed.budgets)
                     ? parsed.budgets
-                    : []
+                    : [],
 
+            monthlyBalance:
+                Number(parsed.monthlyBalance || 0)
         };
 
     } catch (error) {
@@ -218,7 +199,8 @@ function loadData() {
 
         appData = {
             expenses: [],
-            budgets: []
+            budgets: [],
+            monthlyBalance: 0
         };
     }
 }
@@ -233,25 +215,19 @@ function saveData() {
 }
 
 
-/* =========================================================
-   STORAGE — COTAÇÕES
-========================================================= */
-
 function loadQuotes() {
 
     try {
 
         const saved =
-            localStorage.getItem(
-                QUOTES_STORAGE_KEY
-            );
+            localStorage.getItem(QUOTES_STORAGE_KEY);
 
         if (!saved) {
+            quotes = [];
             return;
         }
 
-        const parsed =
-            JSON.parse(saved);
+        const parsed = JSON.parse(saved);
 
         quotes =
             Array.isArray(parsed)
@@ -279,31 +255,28 @@ function saveQuotes() {
 }
 
 
-/* =========================================================
+/* =====================================================
    NAVEGAÇÃO
-========================================================= */
+===================================================== */
 
 function setupNavigation() {
 
-    const menuItems =
-        document.querySelectorAll(
-            ".menu-item"
-        );
+    document
+        .querySelectorAll(".menu-item")
+        .forEach(item => {
 
-    menuItems.forEach(item => {
+            item.addEventListener(
+                "click",
+                () => {
 
-        item.addEventListener(
-            "click",
-            () => {
+                    showPage(
+                        item.dataset.page
+                    );
 
-                showPage(
-                    item.dataset.page
-                );
+                }
+            );
 
-            }
-        );
-
-    });
+        });
 }
 
 
@@ -313,59 +286,42 @@ function showPage(pageId) {
         .querySelectorAll(".page")
         .forEach(page => {
 
-            page.classList.remove(
-                "active"
-            );
+            page.classList.remove("active");
 
         });
 
-
     const page =
-        document.getElementById(
-            pageId
-        );
+        document.getElementById(pageId);
 
-
-    if (page) {
-
-        page.classList.add(
-            "active"
-        );
+    if (!page) {
+        return;
     }
 
+    page.classList.add("active");
 
     document
-        .querySelectorAll(
-            ".menu-item"
-        )
+        .querySelectorAll(".menu-item")
         .forEach(item => {
 
             item.classList.toggle(
                 "active",
-                item.dataset.page ===
-                    pageId
+                item.dataset.page === pageId
             );
 
         });
 
-
     const sidebar =
-        document.querySelector(
-            ".sidebar"
-        );
+        document.querySelector(".sidebar");
 
     if (sidebar) {
-
-        sidebar.classList.remove(
-            "open"
-        );
+        sidebar.classList.remove("open");
     }
 }
 
 
-/* =========================================================
+/* =====================================================
    MENU MOBILE
-========================================================= */
+===================================================== */
 
 function setupMobileMenu() {
 
@@ -375,9 +331,7 @@ function setupMobileMenu() {
         );
 
     const sidebar =
-        document.querySelector(
-            ".sidebar"
-        );
+        document.querySelector(".sidebar");
 
     if (!button || !sidebar) {
         return;
@@ -396,53 +350,56 @@ function setupMobileMenu() {
 }
 
 
-/* =========================================================
+/* =====================================================
    TEMA
-========================================================= */
+===================================================== */
 
 function loadTheme() {
 
-    const saved =
-        localStorage.getItem(
-            "orcafacil_theme"
-        );
+    const theme =
+        localStorage.getItem(THEME_KEY);
 
-    if (saved === "dark") {
-
-        document.body.classList.add(
-            "dark"
-        );
-
-    } else {
-
-        document.body.classList.remove(
-            "dark"
-        );
+    if (theme === "dark") {
+        document.body.classList.add("dark");
     }
 
     updateThemeButton();
 }
 
 
-function toggleTheme() {
+function setupTheme() {
 
-    document.body.classList.toggle(
-        "dark"
-    );
-
-    const isDark =
-        document.body.classList.contains(
-            "dark"
+    const button =
+        document.getElementById(
+            "themeToggle"
         );
 
-    localStorage.setItem(
-        "orcafacil_theme",
-        isDark
-            ? "dark"
-            : "light"
-    );
+    if (!button) {
+        return;
+    }
 
-    updateThemeButton();
+    button.addEventListener(
+        "click",
+        () => {
+
+            document.body.classList.toggle(
+                "dark"
+            );
+
+            const dark =
+                document.body.classList.contains(
+                    "dark"
+                );
+
+            localStorage.setItem(
+                THEME_KEY,
+                dark ? "dark" : "light"
+            );
+
+            updateThemeButton();
+
+        }
+    );
 }
 
 
@@ -458,120 +415,119 @@ function updateThemeButton() {
             "themeText"
         );
 
-    const isDark =
+    const dark =
         document.body.classList.contains(
             "dark"
         );
 
     if (icon) {
-
         icon.textContent =
-            isDark
-                ? "☀️"
-                : "🌙";
+            dark ? "☀️" : "🌙";
     }
 
     if (text) {
-
         text.textContent =
-            isDark
+            dark
                 ? "Modo claro"
                 : "Modo escuro";
     }
 }
 
 
-document.addEventListener(
-    "click",
-    event => {
-
-        if (
-            event.target.id ===
-            "themeToggle" ||
-            event.target.closest(
-                "#themeToggle"
-            )
-        ) {
-
-            toggleTheme();
-        }
-
-    }
-);
-
-
-/* =========================================================
-   CATEGORIAS — DESPESAS
-========================================================= */
+/* =====================================================
+   CATEGORIAS
+===================================================== */
 
 function populateCategorySelects() {
 
-    const categorySelect =
+    const expenseCategory =
         document.getElementById(
             "expenseCategory"
         );
 
-    const filterSelect =
+    const expenseFilter =
         document.getElementById(
             "expenseCategoryFilter"
         );
 
+    if (expenseCategory) {
 
-    if (categorySelect) {
-
-        categorySelect.innerHTML =
-            `<option value="">
-                Selecione
-            </option>`;
-
+        expenseCategory.innerHTML =
+            `<option value="">Selecione</option>`;
 
         Object.keys(categories)
             .forEach(category => {
 
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-                option.value =
-                    category;
-
-                option.textContent =
-                    category;
-
-                categorySelect.appendChild(
-                    option
-                );
+                expenseCategory.innerHTML += `
+                    <option value="${escapeHTML(category)}">
+                        ${escapeHTML(category)}
+                    </option>
+                `;
 
             });
     }
 
+    if (expenseFilter) {
 
-    if (filterSelect) {
-
-        filterSelect.innerHTML =
-            `<option value="">
-                Todas as categorias
-            </option>`;
-
+        expenseFilter.innerHTML =
+            `<option value="">Todas</option>`;
 
         Object.keys(categories)
             .forEach(category => {
 
-                const option =
-                    document.createElement(
-                        "option"
-                    );
+                expenseFilter.innerHTML += `
+                    <option value="${escapeHTML(category)}">
+                        ${escapeHTML(category)}
+                    </option>
+                `;
 
-                option.value =
-                    category;
+            });
+    }
+}
 
-                option.textContent =
-                    category;
 
-                filterSelect.appendChild(
-                    option
-                );
+function populateQuoteCategorySelect() {
+
+    const quoteCategory =
+        document.getElementById(
+            "quoteCategory"
+        );
+
+    const quoteFilter =
+        document.getElementById(
+            "quoteCategoryFilter"
+        );
+
+    if (quoteCategory) {
+
+        quoteCategory.innerHTML =
+            `<option value="">Selecione</option>`;
+
+        Object.keys(categories)
+            .forEach(category => {
+
+                quoteCategory.innerHTML += `
+                    <option value="${escapeHTML(category)}">
+                        ${escapeHTML(category)}
+                    </option>
+                `;
+
+            });
+    }
+
+    if (quoteFilter) {
+
+        quoteFilter.innerHTML =
+            `<option value="">Todas</option>`;
+
+        Object.keys(categories)
+            .forEach(category => {
+
+                quoteFilter.innerHTML += `
+                    <option value="${escapeHTML(category)}">
+                        ${escapeHTML(category)}
+                    </option>
+                `;
 
             });
     }
@@ -579,273 +535,104 @@ function populateCategorySelects() {
 
 
 function updateSubcategories(
-    selectedValue = ""
+    categoryId,
+    subcategoryId
 ) {
+
+    const category =
+        document.getElementById(categoryId);
+
+    const subcategory =
+        document.getElementById(subcategoryId);
+
+    if (!category || !subcategory) {
+        return;
+    }
+
+    const selected =
+        category.value;
+
+    subcategory.innerHTML =
+        `<option value="">Selecione</option>`;
+
+    if (!selected || !categories[selected]) {
+        return;
+    }
+
+    categories[selected]
+        .forEach(item => {
+
+            subcategory.innerHTML += `
+                <option value="${escapeHTML(item)}">
+                    ${escapeHTML(item)}
+                </option>
+            `;
+
+        });
+}
+
+
+/* =====================================================
+   DESPESAS — FORMULÁRIO
+===================================================== */
+
+function setupExpenseForm() {
 
     const category =
         document.getElementById(
             "expenseCategory"
         );
-
-    const subcategory =
-        document.getElementById(
-            "expenseSubcategory"
-        );
-
-    if (!category || !subcategory) {
-        return;
-    }
-
-    subcategory.innerHTML =
-        `<option value="">
-            Selecione
-        </option>`;
-
-
-    if (!category.value) {
-        return;
-    }
-
-
-    const subcategories =
-        categories[
-            category.value
-        ] || [];
-
-
-    subcategories.forEach(
-        item => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-            option.value =
-                item;
-
-            option.textContent =
-                item;
-
-            subcategory.appendChild(
-                option
-            );
-        }
-    );
-
-
-    if (selectedValue) {
-
-        subcategory.value =
-            selectedValue;
-    }
-}
-
-
-/* =========================================================
-   CATEGORIAS — COTAÇÕES
-========================================================= */
-
-function populateQuoteCategorySelect() {
-
-    const categorySelect =
-        document.getElementById(
-            "quoteCategory"
-        );
-
-    const filterSelect =
-        document.getElementById(
-            "quoteCategoryFilter"
-        );
-
-
-    if (categorySelect) {
-
-        categorySelect.innerHTML =
-            `<option value="">
-                Selecione
-            </option>`;
-
-
-        Object.keys(categories)
-            .forEach(category => {
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-                option.value =
-                    category;
-
-                option.textContent =
-                    category;
-
-                categorySelect.appendChild(
-                    option
-                );
-
-            });
-    }
-
-
-    if (filterSelect) {
-
-        filterSelect.innerHTML =
-            `<option value="">
-                Todas as categorias
-            </option>`;
-
-
-        Object.keys(categories)
-            .forEach(category => {
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-                option.value =
-                    category;
-
-                option.textContent =
-                    category;
-
-                filterSelect.appendChild(
-                    option
-                );
-
-            });
-    }
-}
-
-
-function updateQuoteSubcategories(
-    selectedValue = ""
-) {
-
-    const category =
-        document.getElementById(
-            "quoteCategory"
-        );
-
-    const subcategory =
-        document.getElementById(
-            "quoteSubcategory"
-        );
-
-    if (!category || !subcategory) {
-        return;
-    }
-
-    subcategory.innerHTML =
-        `<option value="">
-            Selecione
-        </option>`;
-
-
-    if (!category.value) {
-        return;
-    }
-
-
-    const subcategories =
-        categories[
-            category.value
-        ] || [];
-
-
-    subcategories.forEach(
-        item => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-            option.value =
-                item;
-
-            option.textContent =
-                item;
-
-            subcategory.appendChild(
-                option
-            );
-        }
-    );
-
-
-    if (selectedValue) {
-
-        subcategory.value =
-            selectedValue;
-    }
-}
-
-
-/* =========================================================
-   FORMULÁRIO — DESPESA
-========================================================= */
-
-function setupExpenseForm() {
 
     const form =
         document.getElementById(
             "expenseForm"
         );
 
-    if (!form) {
-        return;
-    }
-
-
-    form.addEventListener(
-        "submit",
-        saveExpense
-    );
-
-
-    const category =
-        document.getElementById(
-            "expenseCategory"
-        );
-
-
-    category?.addEventListener(
-        "change",
-        () => {
-
-            updateSubcategories();
-
-        }
-    );
-
-
     const amount =
         document.getElementById(
             "expenseAmount"
         );
 
+    if (category) {
 
-    amount?.addEventListener(
-        "input",
-        () => {
+        category.addEventListener(
+            "change",
+            () => {
 
-            moneyMask(amount);
+                updateSubcategories(
+                    "expenseCategory",
+                    "expenseSubcategory"
+                );
 
-        }
-    );
+            }
+        );
+    }
+
+    if (amount) {
+
+        amount.addEventListener(
+            "input",
+            () => moneyMask(amount)
+        );
+    }
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            event => {
+
+                event.preventDefault();
+
+                saveExpense();
+
+            }
+        );
+    }
 }
 
 
-/* =========================================================
-   ABRIR DESPESA
-========================================================= */
-
-function openExpenseModal(
-    expenseId = null
-) {
+function openExpenseModal(id = null) {
 
     const modal =
         document.getElementById(
@@ -861,111 +648,92 @@ function openExpenseModal(
         return;
     }
 
+    editingExpenseId = id;
 
     form.reset();
 
-    editingExpenseId =
-        expenseId;
+    document.getElementById(
+        "expenseId"
+    ).value = "";
 
+    document.getElementById(
+        "expenseDate"
+    ).value = getTodayDate();
 
-    const title =
-        document.getElementById(
-            "expenseModalTitle"
-        );
+    updateSubcategories(
+        "expenseCategory",
+        "expenseSubcategory"
+    );
 
-
-    if (expenseId) {
+    if (id) {
 
         const expense =
             appData.expenses.find(
-                item =>
-                    item.id ===
-                    expenseId
+                item => item.id === id
             );
-
 
         if (!expense) {
             return;
         }
 
-
-        title.textContent =
+        document.getElementById(
+            "expenseModalTitle"
+        ).textContent =
             "Editar despesa";
 
+        document.getElementById(
+            "expenseId"
+        ).value =
+            expense.id;
 
         document.getElementById(
             "expenseDescription"
         ).value =
-            expense.description || "";
-
+            expense.description;
 
         document.getElementById(
             "expenseCategory"
         ).value =
-            expense.category || "";
-
+            expense.category;
 
         updateSubcategories(
-            expense.subcategory
+            "expenseCategory",
+            "expenseSubcategory"
         );
 
+        document.getElementById(
+            "expenseSubcategory"
+        ).value =
+            expense.subcategory;
 
         document.getElementById(
             "expenseAmount"
         ).value =
             formatCurrency(
-                expense.amount
+                Number(expense.amount)
             );
-
 
         document.getElementById(
             "expenseDate"
         ).value =
-            expense.date || "";
-
+            expense.date;
 
         document.getElementById(
             "expenseNotes"
         ).value =
             expense.notes || "";
 
-
     } else {
 
-        title.textContent =
-            "Nova despesa";
-
-
         document.getElementById(
-            "expenseDate"
-        ).value =
-            getTodayDate();
+            "expenseModalTitle"
+        ).textContent =
+            "Nova despesa";
     }
 
-
-    modal.classList.add(
-        "show"
-    );
-
-
-    setTimeout(
-        () => {
-
-            document
-                .getElementById(
-                    "expenseDescription"
-                )
-                ?.focus();
-
-        },
-        100
-    );
+    modal.classList.add("show");
 }
 
-
-/* =========================================================
-   FECHAR DESPESA
-========================================================= */
 
 function closeExpenseModal() {
 
@@ -975,43 +743,29 @@ function closeExpenseModal() {
         );
 
     if (modal) {
-
-        modal.classList.remove(
-            "show"
-        );
+        modal.classList.remove("show");
     }
 
-    editingExpenseId =
-        null;
+    editingExpenseId = null;
 }
 
 
-/* =========================================================
-   SALVAR DESPESA
-========================================================= */
-
-function saveExpense(event) {
-
-    event.preventDefault();
-
+function saveExpense() {
 
     const description =
         document.getElementById(
             "expenseDescription"
         ).value.trim();
 
-
     const category =
         document.getElementById(
             "expenseCategory"
         ).value;
 
-
     const subcategory =
         document.getElementById(
             "expenseSubcategory"
         ).value;
-
 
     const amount =
         parseMoney(
@@ -1020,78 +774,38 @@ function saveExpense(event) {
             ).value
         );
 
-
     const date =
         document.getElementById(
             "expenseDate"
         ).value;
-
 
     const notes =
         document.getElementById(
             "expenseNotes"
         ).value.trim();
 
-
-    if (!description) {
+    if (
+        !description ||
+        !category ||
+        !subcategory ||
+        amount <= 0 ||
+        !date
+    ) {
 
         showToast(
-            "Digite a descrição da despesa."
+            "Preencha todos os campos obrigatórios."
         );
 
         return;
     }
-
-
-    if (!category) {
-
-        showToast(
-            "Selecione uma categoria."
-        );
-
-        return;
-    }
-
-
-    if (!subcategory) {
-
-        showToast(
-            "Selecione uma subcategoria."
-        );
-
-        return;
-    }
-
-
-    if (amount <= 0) {
-
-        showToast(
-            "Digite um valor válido."
-        );
-
-        return;
-    }
-
-
-    if (!date) {
-
-        showToast(
-            "Informe a data."
-        );
-
-        return;
-    }
-
 
     if (editingExpenseId) {
 
         const index =
             appData.expenses.findIndex(
                 item =>
-                    item.id ===
-                    editingExpenseId
+                    item.id === editingExpenseId
             );
-
 
         if (index !== -1) {
 
@@ -1109,56 +823,47 @@ function saveExpense(event) {
             };
         }
 
-
         showToast(
             "Despesa atualizada!"
         );
-
 
     } else {
 
         appData.expenses.unshift({
 
-            id:
-                Date.now().toString(),
+            id: generateId(),
 
             description,
             category,
             subcategory,
             amount,
             date,
-            notes,
-
-            createdAt:
-                new Date()
-                    .toISOString()
+            notes
 
         });
 
-
         showToast(
-            "Despesa adicionada!"
+            "Despesa cadastrada!"
         );
     }
 
-
     saveData();
+
+    closeExpenseModal();
 
     renderExpenses();
 
     updateDashboard();
-
-    closeExpenseModal();
 }
 
 
-/* =========================================================
-   RENDER — DESPESAS
-========================================================= */
+/* =====================================================
+   DESPESAS — LISTAGEM
+===================================================== */
 
 function renderExpenses() {
 
-    const tbody =
+    const container =
         document.getElementById(
             "expensesTableBody"
         );
@@ -1168,11 +873,9 @@ function renderExpenses() {
             "expensesEmpty"
         );
 
-
-    if (!tbody || !empty) {
+    if (!container || !empty) {
         return;
     }
-
 
     const search =
         (
@@ -1180,25 +883,21 @@ function renderExpenses() {
                 "expenseSearch"
             )?.value || ""
         )
-            .toLowerCase()
-            .trim();
+            .trim()
+            .toLowerCase();
 
-
-    const categoryFilter =
+    const category =
         document.getElementById(
             "expenseCategoryFilter"
         )?.value || "";
 
-
-    const monthFilter =
+    const month =
         document.getElementById(
             "expenseMonthFilter"
         )?.value || "";
 
-
     let filtered =
         [...appData.expenses];
-
 
     if (search) {
 
@@ -1207,16 +906,13 @@ function renderExpenses() {
                 expense => {
 
                     const text = [
-
                         expense.description,
                         expense.category,
                         expense.subcategory,
                         expense.notes
-
                     ]
                         .join(" ")
                         .toLowerCase();
-
 
                     return text.includes(
                         search
@@ -1225,30 +921,27 @@ function renderExpenses() {
             );
     }
 
-
-    if (categoryFilter) {
+    if (category) {
 
         filtered =
             filtered.filter(
                 expense =>
                     expense.category ===
-                    categoryFilter
+                    category
             );
     }
 
-
-    if (monthFilter) {
+    if (month) {
 
         filtered =
             filtered.filter(
                 expense =>
                     expense.date &&
                     expense.date.startsWith(
-                        monthFilter
+                        month
                     )
             );
     }
-
 
     filtered.sort(
         (a, b) =>
@@ -1256,10 +949,9 @@ function renderExpenses() {
             new Date(a.date)
     );
 
-
     if (!filtered.length) {
 
-        tbody.innerHTML = "";
+        container.innerHTML = "";
 
         empty.style.display =
             "block";
@@ -1267,123 +959,106 @@ function renderExpenses() {
         return;
     }
 
-
     empty.style.display =
         "none";
 
-
-    tbody.innerHTML =
+    container.innerHTML =
         filtered
-            .map(
-                expense => `
+            .map(expense => `
 
-                    <tr>
+                <tr>
 
-                        <td>
-                            <span class="table-date">
-                                ${formatDate(
-                                    expense.date
-                                )}
-                            </span>
-                        </td>
-
-                        <td>
-                            <strong>
-                                ${escapeHTML(
-                                    expense.description
-                                )}
-                            </strong>
-                        </td>
-
-                        <td>
-                            <span class="category-badge">
-                                ${escapeHTML(
-                                    expense.category
-                                )}
-                            </span>
-                        </td>
-
-                        <td>
+                    <td>
+                        <strong>
                             ${escapeHTML(
-                                expense.subcategory
+                                expense.description
                             )}
-                        </td>
+                        </strong>
+                    </td>
 
-                        <td>
-                            <span class="amount">
-                                ${formatCurrency(
-                                    expense.amount
-                                )}
-                            </span>
-                        </td>
+                    <td>
+                        ${escapeHTML(
+                            expense.category
+                        )}
+                    </td>
 
-                        <td>
+                    <td>
+                        ${escapeHTML(
+                            expense.subcategory
+                        )}
+                    </td>
 
-                            <div class="action-buttons">
+                    <td class="table-value">
+                        ${formatCurrency(
+                            expense.amount
+                        )}
+                    </td>
 
-                                <button
-                                    class="action-button"
-                                    title="Editar"
-                                    aria-label="Editar"
-                                    onclick="openExpenseModal('${expense.id}')">
-                                    ✏️
-                                </button>
+                    <td>
+                        ${formatDate(
+                            expense.date
+                        )}
+                    </td>
 
-                                <button
-                                    class="action-button delete"
-                                    title="Excluir"
-                                    aria-label="Excluir"
-                                    onclick="deleteExpense('${expense.id}')">
-                                    🗑️
-                                </button>
+                    <td>
 
-                            </div>
+                        <div class="action-buttons">
 
-                        </td>
+                            <button
+                                type="button"
+                                class="action-button"
+                                title="Editar"
+                                onclick="openExpenseModal('${expense.id}')">
 
-                    </tr>
+                                ✏️
 
-                `
-            )
+                            </button>
+
+                            <button
+                                type="button"
+                                class="action-button delete"
+                                title="Excluir"
+                                onclick="deleteExpense('${expense.id}')">
+
+                                🗑️
+
+                            </button>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            `)
             .join("");
 }
 
-
-/* =========================================================
-   EXCLUIR DESPESA
-========================================================= */
 
 function deleteExpense(id) {
 
     const expense =
         appData.expenses.find(
-            item =>
-                item.id === id
+            item => item.id === id
         );
-
 
     if (!expense) {
         return;
     }
-
 
     const confirmed =
         confirm(
             `Deseja excluir a despesa "${expense.description}"?`
         );
 
-
     if (!confirmed) {
         return;
     }
 
-
     appData.expenses =
         appData.expenses.filter(
-            item =>
-                item.id !== id
+            item => item.id !== id
         );
-
 
     saveData();
 
@@ -1397,68 +1072,67 @@ function deleteExpense(id) {
 }
 
 
-/* =========================================================
-   FORMULÁRIO — COTAÇÕES
-========================================================= */
+/* =====================================================
+   COTAÇÕES — FORMULÁRIO
+===================================================== */
 
 function setupQuoteForm() {
-
-    const form =
-        document.getElementById(
-            "quoteForm"
-        );
-
-    if (!form) {
-        return;
-    }
-
-
-    form.addEventListener(
-        "submit",
-        saveQuote
-    );
-
 
     const category =
         document.getElementById(
             "quoteCategory"
         );
 
-
-    category?.addEventListener(
-        "change",
-        () => {
-
-            updateQuoteSubcategories();
-
-        }
-    );
-
-
     const price =
         document.getElementById(
             "quotePrice"
         );
 
+    const form =
+        document.getElementById(
+            "quoteForm"
+        );
 
-    price?.addEventListener(
-        "input",
-        () => {
+    if (category) {
 
-            moneyMask(price);
+        category.addEventListener(
+            "change",
+            () => {
 
-        }
-    );
+                updateSubcategories(
+                    "quoteCategory",
+                    "quoteSubcategory"
+                );
+
+            }
+        );
+    }
+
+    if (price) {
+
+        price.addEventListener(
+            "input",
+            () => moneyMask(price)
+        );
+    }
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            event => {
+
+                event.preventDefault();
+
+                saveQuote();
+
+            }
+        );
+    }
 }
 
 
-/* =========================================================
-   ABRIR COTAÇÃO
-========================================================= */
-
-function openQuoteModal(
-    quoteId = null
-) {
+function openQuoteModal(id = null) {
 
     const modal =
         document.getElementById(
@@ -1470,122 +1144,101 @@ function openQuoteModal(
             "quoteForm"
         );
 
-
     if (!modal || !form) {
         return;
     }
 
+    editingQuoteId = id;
 
     form.reset();
 
-    editingQuoteId =
-        quoteId;
+    document.getElementById(
+        "quoteId"
+    ).value = "";
 
+    document.getElementById(
+        "quoteDate"
+    ).value = getTodayDate();
 
-    const title =
-        document.getElementById(
-            "quoteModalTitle"
-        );
+    updateSubcategories(
+        "quoteCategory",
+        "quoteSubcategory"
+    );
 
-
-    if (quoteId) {
+    if (id) {
 
         const quote =
             quotes.find(
-                item =>
-                    item.id ===
-                    quoteId
+                item => item.id === id
             );
-
 
         if (!quote) {
             return;
         }
 
-
-        title.textContent =
+        document.getElementById(
+            "quoteModalTitle"
+        ).textContent =
             "Editar cotação";
 
+        document.getElementById(
+            "quoteId"
+        ).value =
+            quote.id;
 
         document.getElementById(
             "quoteProduct"
         ).value =
-            quote.product || "";
-
+            quote.product;
 
         document.getElementById(
             "quoteCategory"
         ).value =
-            quote.category || "";
+            quote.category;
 
-
-        updateQuoteSubcategories(
-            quote.subcategory
+        updateSubcategories(
+            "quoteCategory",
+            "quoteSubcategory"
         );
 
+        document.getElementById(
+            "quoteSubcategory"
+        ).value =
+            quote.subcategory;
 
         document.getElementById(
             "quoteStore"
         ).value =
-            quote.store || "";
-
+            quote.store;
 
         document.getElementById(
             "quotePrice"
         ).value =
             formatCurrency(
-                quote.price
+                Number(quote.price)
             );
-
 
         document.getElementById(
             "quoteDate"
         ).value =
-            quote.date || "";
-
+            quote.date;
 
         document.getElementById(
             "quoteNotes"
         ).value =
             quote.notes || "";
 
-
     } else {
 
-        title.textContent =
-            "Nova cotação";
-
-
         document.getElementById(
-            "quoteDate"
-        ).value =
-            getTodayDate();
+            "quoteModalTitle"
+        ).textContent =
+            "Nova cotação";
     }
 
-
-    modal.classList.add(
-        "show"
-    );
-
-
-    setTimeout(
-        () => {
-
-            document
-                .getElementById(
-                    "quoteProduct"
-                )
-                ?.focus();
-
-        },
-        100
-    );
+    modal.classList.add("show");
 }
 
-
-/* =========================================================
-   FECHAR COTAÇÃO
-========================================================= */
 
 function closeQuoteModal() {
 
@@ -1594,52 +1247,35 @@ function closeQuoteModal() {
             "quoteModal"
         );
 
-
     if (modal) {
-
-        modal.classList.remove(
-            "show"
-        );
+        modal.classList.remove("show");
     }
 
-
-    editingQuoteId =
-        null;
+    editingQuoteId = null;
 }
 
 
-/* =========================================================
-   SALVAR COTAÇÃO
-========================================================= */
-
-function saveQuote(event) {
-
-    event.preventDefault();
-
+function saveQuote() {
 
     const product =
         document.getElementById(
             "quoteProduct"
         ).value.trim();
 
-
     const category =
         document.getElementById(
             "quoteCategory"
         ).value;
-
 
     const subcategory =
         document.getElementById(
             "quoteSubcategory"
         ).value;
 
-
     const store =
         document.getElementById(
             "quoteStore"
         ).value.trim();
-
 
     const price =
         parseMoney(
@@ -1648,88 +1284,39 @@ function saveQuote(event) {
             ).value
         );
 
-
     const date =
         document.getElementById(
             "quoteDate"
         ).value;
-
 
     const notes =
         document.getElementById(
             "quoteNotes"
         ).value.trim();
 
-
-    if (!product) {
+    if (
+        !product ||
+        !category ||
+        !subcategory ||
+        !store ||
+        price <= 0 ||
+        !date
+    ) {
 
         showToast(
-            "Digite o nome do produto."
+            "Preencha todos os campos obrigatórios."
         );
 
         return;
     }
-
-
-    if (!category) {
-
-        showToast(
-            "Selecione uma categoria."
-        );
-
-        return;
-    }
-
-
-    if (!subcategory) {
-
-        showToast(
-            "Selecione uma subcategoria."
-        );
-
-        return;
-    }
-
-
-    if (!store) {
-
-        showToast(
-            "Digite o nome da loja."
-        );
-
-        return;
-    }
-
-
-    if (price <= 0) {
-
-        showToast(
-            "Digite um preço válido."
-        );
-
-        return;
-    }
-
-
-    if (!date) {
-
-        showToast(
-            "Informe a data da cotação."
-        );
-
-        return;
-    }
-
 
     if (editingQuoteId) {
 
         const index =
             quotes.findIndex(
                 item =>
-                    item.id ===
-                    editingQuoteId
+                    item.id === editingQuoteId
             );
-
 
         if (index !== -1) {
 
@@ -1748,18 +1335,15 @@ function saveQuote(event) {
             };
         }
 
-
         showToast(
             "Cotação atualizada!"
         );
-
 
     } else {
 
         quotes.unshift({
 
-            id:
-                Date.now().toString(),
+            id: generateId(),
 
             product,
             category,
@@ -1767,34 +1351,28 @@ function saveQuote(event) {
             store,
             price,
             date,
-            notes,
-
-            createdAt:
-                new Date()
-                    .toISOString()
+            notes
 
         });
 
-
         showToast(
-            "Cotação adicionada!"
+            "Cotação cadastrada!"
         );
     }
 
-
     saveQuotes();
+
+    closeQuoteModal();
 
     renderQuotes();
 
     updateDashboard();
-
-    closeQuoteModal();
 }
 
 
-/* =========================================================
-   RENDER — COTAÇÕES
-========================================================= */
+/* =====================================================
+   COTAÇÕES — LISTAGEM
+===================================================== */
 
 function renderQuotes() {
 
@@ -1808,11 +1386,9 @@ function renderQuotes() {
             "quotesEmpty"
         );
 
-
     if (!container || !empty) {
         return;
     }
-
 
     const search =
         (
@@ -1820,19 +1396,16 @@ function renderQuotes() {
                 "quoteSearch"
             )?.value || ""
         )
-            .toLowerCase()
-            .trim();
+            .trim()
+            .toLowerCase();
 
-
-    const categoryFilter =
+    const category =
         document.getElementById(
             "quoteCategoryFilter"
         )?.value || "";
 
-
     let filtered =
         [...quotes];
-
 
     if (search) {
 
@@ -1841,17 +1414,14 @@ function renderQuotes() {
                 quote => {
 
                     const text = [
-
                         quote.product,
                         quote.store,
                         quote.category,
                         quote.subcategory,
                         quote.notes
-
                     ]
                         .join(" ")
                         .toLowerCase();
-
 
                     return text.includes(
                         search
@@ -1860,17 +1430,15 @@ function renderQuotes() {
             );
     }
 
-
-    if (categoryFilter) {
+    if (category) {
 
         filtered =
             filtered.filter(
                 quote =>
                     quote.category ===
-                    categoryFilter
+                    category
             );
     }
-
 
     if (!filtered.length) {
 
@@ -1882,289 +1450,237 @@ function renderQuotes() {
         return;
     }
 
-
     empty.style.display =
         "none";
 
-
-    /*
-     * Agrupa produto + categoria +
-     * subcategoria.
-     */
     const grouped = {};
 
+    filtered.forEach(quote => {
 
-    filtered.forEach(
-        quote => {
+        const key = [
+            quote.product || "",
+            quote.category || "",
+            quote.subcategory || ""
+        ]
+            .map(
+                value =>
+                    value
+                        .trim()
+                        .toLowerCase()
+            )
+            .join("|");
 
-            const key = [
-
-                String(
-                    quote.product || ""
-                )
-                    .trim()
-                    .toLowerCase(),
-
-                String(
-                    quote.category || ""
-                )
-                    .trim()
-                    .toLowerCase(),
-
-                String(
-                    quote.subcategory || ""
-                )
-                    .trim()
-                    .toLowerCase()
-
-            ].join("|");
-
-
-            if (!grouped[key]) {
-
-                grouped[key] = [];
-            }
-
-
-            grouped[key].push(
-                quote
-            );
-
+        if (!grouped[key]) {
+            grouped[key] = [];
         }
-    );
 
+        grouped[key].push(quote);
+    });
 
     container.innerHTML = "";
 
-
     Object.values(grouped)
-        .forEach(
-            productQuotes => {
+        .forEach(productQuotes => {
 
-                /*
-                 * Menor preço primeiro.
-                 */
-                productQuotes.sort(
-                    (a, b) =>
-                        Number(
-                            a.price
-                        ) -
-                        Number(
-                            b.price
-                        )
+            productQuotes.sort(
+                (a, b) =>
+                    Number(a.price) -
+                    Number(b.price)
+            );
+
+            const cheapest =
+                productQuotes[0];
+
+            const mostExpensive =
+                productQuotes[
+                    productQuotes.length - 1
+                ];
+
+            const saving =
+                Number(
+                    mostExpensive.price
+                ) -
+                Number(
+                    cheapest.price
                 );
 
+            const card =
+                document.createElement(
+                    "div"
+                );
 
-                const cheapest =
-                    productQuotes[0];
+            card.className =
+                "quote-card";
 
+            card.innerHTML = `
 
-                const mostExpensive =
-                    productQuotes[
-                        productQuotes.length - 1
-                    ];
+                <div class="quote-card-header">
 
+                    <div>
 
-                const saving =
-                    Number(
-                        mostExpensive.price
-                    ) -
-                    Number(
-                        cheapest.price
-                    );
+                        <h3>
+                            ${escapeHTML(
+                                cheapest.product
+                            )}
+                        </h3>
 
+                        <span>
+                            ${escapeHTML(
+                                cheapest.category
+                            )}
+                            •
+                            ${escapeHTML(
+                                cheapest.subcategory
+                            )}
+                        </span>
 
-                const card =
-                    document.createElement(
-                        "div"
-                    );
+                    </div>
 
+                    ${
+                        saving > 0
+                            ? `
+                                <div class="saving-badge">
 
-                card.className =
-                    "quote-card";
+                                    Economia possível:
+                                    ${formatCurrency(
+                                        saving
+                                    )}
 
+                                </div>
+                            `
+                            : ""
+                    }
 
-                card.innerHTML = `
-
-                    <div class="quote-card-header">
-
-                        <div>
-
-                            <h3>
-                                ${escapeHTML(
-                                    cheapest.product
-                                )}
-                            </h3>
-
-                            <span>
-                                ${escapeHTML(
-                                    cheapest.category
-                                )}
-                                •
-                                ${escapeHTML(
-                                    cheapest.subcategory
-                                )}
-                            </span>
-
-                        </div>
+                </div>
 
 
-                        ${
-                            saving > 0
-                                ? `
-                                    <div class="saving-badge">
+                <div class="quote-prices">
 
-                                        Economia possível:
-                                        ${formatCurrency(
-                                            saving
+                    ${productQuotes
+                        .map(
+                            (quote, index) => `
+
+                            <div class="
+                                quote-price-row
+                                ${
+                                    index === 0
+                                        ? "cheapest"
+                                        : ""
+                                }
+                            ">
+
+                                <div class="quote-store">
+
+                                    <strong>
+                                        ${escapeHTML(
+                                            quote.store
                                         )}
+                                    </strong>
 
-                                    </div>
-                                  `
-                                : ""
-                        }
+                                    <small>
+                                        ${formatDate(
+                                            quote.date
+                                        )}
+                                    </small>
 
-                    </div>
-
-
-                    <div class="quote-prices">
-
-                        ${productQuotes
-                            .map(
-                                (
-                                    quote,
-                                    index
-                                ) => `
-
-                                    <div class="
-                                        quote-price-row
-                                        ${
-                                            index === 0
-                                                ? "cheapest"
-                                                : ""
-                                        }
-                                    ">
-
-                                        <div class="quote-store">
-
-                                            <strong>
-                                                ${escapeHTML(
-                                                    quote.store
-                                                )}
-                                            </strong>
-
-                                            <small>
-                                                ${formatDate(
-                                                    quote.date
-                                                )}
-                                            </small>
-
-                                        </div>
+                                </div>
 
 
-                                        <div class="quote-value">
+                                <div class="quote-value">
 
-                                            <strong>
-                                                ${formatCurrency(
-                                                    quote.price
-                                                )}
-                                            </strong>
+                                    <strong>
+                                        ${formatCurrency(
+                                            quote.price
+                                        )}
+                                    </strong>
 
+                                    ${
+                                        index === 0
+                                            ? `
+                                                <span class="winner-badge">
+                                                    🏆 Mais barato
+                                                </span>
+                                            `
+                                            : ""
+                                    }
 
-                                            ${
-                                                index === 0
-                                                    ? `
-                                                        <span class="winner-badge">
-                                                            🏆 Mais barato
-                                                        </span>
-                                                      `
-                                                    : ""
-                                            }
-
-                                        </div>
-
-
-                                        <div class="action-buttons">
-
-                                            <!-- MAIS DETALHES -->
-                                            <button
-                                                class="action-button"
-                                                title="Mais detalhes"
-                                                aria-label="Mais detalhes"
-                                                onclick="toggleQuoteDetails('${quote.id}')">
-                                                ⓘ
-                                            </button>
+                                </div>
 
 
-                                            <!-- EDITAR -->
-                                            <button
-                                                class="action-button"
-                                                title="Editar"
-                                                aria-label="Editar"
-                                                onclick="openQuoteModal('${quote.id}')">
-                                                ✏️
-                                            </button>
+                                <div class="action-buttons">
+
+                                    <button
+                                        type="button"
+                                        class="action-button"
+                                        title="Mais detalhes"
+                                        aria-label="Mais detalhes"
+                                        onclick="toggleQuoteDetails('${quote.id}')">
+
+                                        ⓘ
+
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="action-button"
+                                        title="Editar"
+                                        onclick="openQuoteModal('${quote.id}')">
+
+                                        ✏️
+
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="action-button delete"
+                                        title="Excluir"
+                                        onclick="deleteQuote('${quote.id}')">
+
+                                        🗑️
+
+                                    </button>
+
+                                </div>
+
+                            </div>
 
 
-                                            <!-- EXCLUIR -->
-                                            <button
-                                                class="action-button delete"
-                                                title="Excluir"
-                                                aria-label="Excluir"
-                                                onclick="deleteQuote('${quote.id}')">
-                                                🗑️
-                                            </button>
+                            <div
+                                id="quote-details-${quote.id}"
+                                class="quote-details"
+                                hidden>
 
-                                        </div>
+                                <strong>
+                                    Observação
+                                </strong>
 
-                                    </div>
+                                <p>
+                                    ${
+                                        quote.notes
+                                            ? escapeHTML(
+                                                quote.notes
+                                            )
+                                            : "Nenhuma observação cadastrada."
+                                    }
+                                </p>
 
+                            </div>
 
-                                    <!-- DETALHES INDIVIDUAIS -->
-                                    <div
-                                        id="quote-details-${quote.id}"
-                                        class="quote-details"
-                                        hidden
-                                    >
+                        `
+                        )
+                        .join("")}
 
-                                        <strong>
-                                            Observação
-                                        </strong>
+                </div>
 
-                                        <p>
-                                            ${
-                                                quote.notes &&
-                                                quote.notes.trim()
-                                                    ? escapeHTML(
-                                                        quote.notes
-                                                    )
-                                                    : "Nenhuma observação cadastrada."
-                                            }
-                                        </p>
+            `;
 
-                                    </div>
+            container.appendChild(
+                card
+            );
 
-                                `
-                            )
-                            .join("")}
-
-                    </div>
-
-                `;
-
-
-                container.appendChild(
-                    card
-                );
-
-            }
-        );
+        });
 }
 
-
-/* =========================================================
-   MAIS DETALHES — COTAÇÃO
-========================================================= */
 
 function toggleQuoteDetails(id) {
 
@@ -2173,52 +1689,43 @@ function toggleQuoteDetails(id) {
             `quote-details-${id}`
         );
 
-
     if (!details) {
         return;
     }
-
 
     details.hidden =
         !details.hidden;
 }
 
 
-/* =========================================================
-   EXCLUIR COTAÇÃO
-========================================================= */
+/* =====================================================
+   COTAÇÕES — EXCLUIR
+===================================================== */
 
 function deleteQuote(id) {
 
     const quote =
         quotes.find(
-            item =>
-                item.id === id
+            item => item.id === id
         );
-
 
     if (!quote) {
         return;
     }
-
 
     const confirmed =
         confirm(
             `Deseja excluir a cotação de "${quote.product}" na loja "${quote.store}"?`
         );
 
-
     if (!confirmed) {
         return;
     }
 
-
     quotes =
         quotes.filter(
-            item =>
-                item.id !== id
+            item => item.id !== id
         );
-
 
     saveQuotes();
 
@@ -2232,98 +1739,645 @@ function deleteQuote(id) {
 }
 
 
-/* =========================================================
+/* =====================================================
    ECONOMIA POSSÍVEL
-========================================================= */
+===================================================== */
 
 function calculatePossibleSavings() {
 
     const grouped = {};
 
+    quotes.forEach(quote => {
 
-    quotes.forEach(
-        quote => {
+        const key = [
+            quote.product || "",
+            quote.category || "",
+            quote.subcategory || ""
+        ]
+            .map(
+                value =>
+                    value
+                        .trim()
+                        .toLowerCase()
+            )
+            .join("|");
 
-            const key = [
-
-                String(
-                    quote.product || ""
-                )
-                    .trim()
-                    .toLowerCase(),
-
-                String(
-                    quote.category || ""
-                )
-                    .trim()
-                    .toLowerCase(),
-
-                String(
-                    quote.subcategory || ""
-                )
-                    .trim()
-                    .toLowerCase()
-
-            ].join("|");
-
-
-            if (!grouped[key]) {
-
-                grouped[key] = [];
-            }
-
-
-            grouped[key].push(
-                Number(
-                    quote.price
-                ) || 0
-            );
-
+        if (!grouped[key]) {
+            grouped[key] = [];
         }
-    );
 
+        grouped[key].push(
+            Number(quote.price || 0)
+        );
+    });
 
     let totalSaving = 0;
 
-
     Object.values(grouped)
-        .forEach(
-            prices => {
+        .forEach(prices => {
 
-                if (
-                    prices.length < 2
-                ) {
-                    return;
-                }
-
-
-                const cheapest =
-                    Math.min(
-                        ...prices
-                    );
-
-
-                const mostExpensive =
-                    Math.max(
-                        ...prices
-                    );
-
-
-                totalSaving +=
-                    mostExpensive -
-                    cheapest;
-
+            if (prices.length < 2) {
+                return;
             }
-        );
 
+            const cheapest =
+                Math.min(
+                    ...prices
+                );
+
+            const mostExpensive =
+                Math.max(
+                    ...prices
+                );
+
+            totalSaving +=
+                mostExpensive -
+                cheapest;
+        });
 
     return totalSaving;
 }
 
 
-/* =========================================================
+/* =====================================================
+   PLANEJAMENTO DO MÊS
+===================================================== */
+
+function setupBudgetControl() {
+
+    const input =
+        document.getElementById(
+            "monthlyBalance"
+        );
+
+    const button =
+        document.getElementById(
+            "saveMonthlyBalance"
+        );
+
+    if (!input || !button) {
+        return;
+    }
+
+    if (appData.monthlyBalance > 0) {
+
+        input.value =
+            formatCurrency(
+                appData.monthlyBalance
+            );
+    }
+
+    input.addEventListener(
+        "input",
+        () => moneyMask(input)
+    );
+
+    button.addEventListener(
+        "click",
+        saveMonthlyBalance
+    );
+}
+
+
+function saveMonthlyBalance() {
+
+    const input =
+        document.getElementById(
+            "monthlyBalance"
+        );
+
+    if (!input) {
+        return;
+    }
+
+    const value =
+        parseMoney(
+            input.value
+        );
+
+    if (value <= 0) {
+
+        showToast(
+            "Informe um salário ou saldo disponível maior que zero."
+        );
+
+        return;
+    }
+
+    appData.monthlyBalance =
+        value;
+
+    saveData();
+
+    updateDashboard();
+
+    showToast(
+        "Saldo disponível atualizado!"
+    );
+}
+
+
+/* =====================================================
+   COTAÇÕES DO MÊS
+===================================================== */
+
+function getMonthlyQuotes() {
+
+    const currentMonth =
+        getCurrentMonth();
+
+    return quotes.filter(
+        quote =>
+            quote.date &&
+            quote.date.startsWith(
+                currentMonth
+            )
+    );
+}
+
+
+/*
+    Para o planejamento:
+    se houver várias lojas para o mesmo produto,
+    somente a opção MAIS BARATA entra no orçamento.
+*/
+
+function getPlannedQuotes() {
+
+    const grouped = {};
+
+    getMonthlyQuotes()
+        .forEach(quote => {
+
+            const key = [
+                quote.product || "",
+                quote.category || "",
+                quote.subcategory || ""
+            ]
+                .map(
+                    value =>
+                        value
+                            .trim()
+                            .toLowerCase()
+                )
+                .join("|");
+
+            if (!grouped[key]) {
+                grouped[key] = [];
+            }
+
+            grouped[key].push(
+                quote
+            );
+        });
+
+
+    return Object.values(grouped)
+
+        .map(items => {
+
+            const sorted =
+                [...items].sort(
+                    (a, b) =>
+                        Number(a.price) -
+                        Number(b.price)
+                );
+
+            const cheapest =
+                sorted[0];
+
+            const mostExpensive =
+                sorted[
+                    sorted.length - 1
+                ];
+
+            return {
+
+                product:
+                    cheapest.product,
+
+                category:
+                    cheapest.category,
+
+                subcategory:
+                    cheapest.subcategory,
+
+                cheapest,
+
+                alternatives:
+                    sorted.length,
+
+                saving:
+                    Number(
+                        mostExpensive.price
+                    ) -
+                    Number(
+                        cheapest.price
+                    )
+
+            };
+
+        })
+
+        .sort(
+            (a, b) =>
+                Number(
+                    b.cheapest.price
+                ) -
+                Number(
+                    a.cheapest.price
+                )
+        );
+}
+
+
+/* =====================================================
+   STATUS DA COTAÇÃO
+===================================================== */
+
+function getQuoteStatus(
+    price,
+    availableBalance
+) {
+
+    if (
+        !appData.monthlyBalance ||
+        appData.monthlyBalance <= 0
+    ) {
+
+        return {
+
+            className: "neutral",
+
+            label: "Defina seu saldo",
+
+            description:
+                "Informe seu saldo no Dashboard."
+
+        };
+    }
+
+
+    if (
+        price >
+        availableBalance
+    ) {
+
+        return {
+
+            className: "danger",
+
+            label: "Risco de perda",
+
+            description:
+                "Essa compra ultrapassa o saldo disponível após as despesas."
+
+        };
+    }
+
+
+    const percentage =
+        availableBalance > 0
+            ? (
+                price /
+                availableBalance
+            ) * 100
+            : 100;
+
+
+    if (percentage >= 10) {
+
+        return {
+
+            className: "warning",
+
+            label: "Cuidado",
+
+            description:
+                "Essa compra consome uma parcela relevante do saldo disponível."
+
+        };
+    }
+
+
+    return {
+
+        className: "success",
+
+        label: "Pode comprar",
+
+        description:
+            "O valor cabe no saldo disponível atual."
+
+    };
+}
+
+
+/* =====================================================
+   DASHBOARD — COTAÇÕES
+===================================================== */
+
+function renderDashboardQuotes(
+    availableBalance
+) {
+
+    const container =
+        document.getElementById(
+            "dashboardQuotes"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    const planned =
+        getPlannedQuotes();
+
+
+    if (!planned.length) {
+
+        container.innerHTML = `
+
+            <div class="
+                empty-state
+                compact-empty
+            ">
+
+                <div class="empty-icon">
+                    🛒
+                </div>
+
+                <strong>
+                    Nenhuma cotação para este mês
+                </strong>
+
+                <p>
+                    As cotações salvas com a data
+                    deste mês aparecerão aqui e
+                    serão consideradas no planejamento.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        planned
+            .map(item => {
+
+                const price =
+                    Number(
+                        item.cheapest.price || 0
+                    );
+
+                const status =
+                    getQuoteStatus(
+                        price,
+                        availableBalance
+                    );
+
+                return `
+
+                    <div class="dashboard-quote-item">
+
+                        <div class="dashboard-quote-main">
+
+                            <strong>
+                                ${escapeHTML(
+                                    item.product
+                                )}
+                            </strong>
+
+                            <span>
+                                ${escapeHTML(
+                                    item.cheapest.store
+                                )}
+                                •
+                                ${formatCurrency(
+                                    price
+                                )}
+                            </span>
+
+                        </div>
+
+
+                        <div class="
+                            dashboard-quote-status
+                            ${status.className}
+                        ">
+
+                            <strong>
+                                ${status.label}
+                            </strong>
+
+                            <small>
+                                ${status.description}
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            })
+            .join("");
+}
+
+
+/* =====================================================
+   DASHBOARD — PLANEJAMENTO
+===================================================== */
+
+function updateBudgetPlanning(
+    monthlyExpenses
+) {
+
+    const monthlyBalance =
+        Number(
+            appData.monthlyBalance || 0
+        );
+
+    /*
+        O saldo após despesas representa
+        quanto ainda existe de dinheiro.
+    */
+
+    const availableBalance =
+        monthlyBalance -
+        monthlyExpenses;
+
+
+    const planned =
+        getPlannedQuotes();
+
+
+    const plannedTotal =
+        planned.reduce(
+            (sum, item) =>
+                sum +
+                Number(
+                    item.cheapest.price || 0
+                ),
+            0
+        );
+
+
+    /*
+        Saldo projetado considera:
+        salário/saldo
+        - despesas
+        - compras planejadas
+    */
+
+    const projectedBalance =
+        monthlyBalance -
+        monthlyExpenses -
+        plannedTotal;
+
+
+    const monthlyLimit =
+        document.getElementById(
+            "monthlyLimit"
+        );
+
+    const availableElement =
+        document.getElementById(
+            "availableAfterExpenses"
+        );
+
+    const plannedElement =
+        document.getElementById(
+            "plannedQuotesTotal"
+        );
+
+    const projectedElement =
+        document.getElementById(
+            "projectedBalance"
+        );
+
+    const statusElement =
+        document.getElementById(
+            "budgetStatus"
+        );
+
+
+    if (monthlyLimit) {
+
+        monthlyLimit.textContent =
+            formatCurrency(
+                monthlyBalance
+            );
+    }
+
+
+    if (availableElement) {
+
+        availableElement.textContent =
+            formatCurrency(
+                availableBalance
+            );
+    }
+
+
+    if (plannedElement) {
+
+        plannedElement.textContent =
+            formatCurrency(
+                plannedTotal
+            );
+    }
+
+
+    if (projectedElement) {
+
+        projectedElement.textContent =
+            formatCurrency(
+                projectedBalance
+            );
+
+        projectedElement.className =
+            projectedBalance < 0
+                ? "danger-value"
+                : "";
+    }
+
+
+    if (statusElement) {
+
+        statusElement.className =
+            "budget-status";
+
+
+        if (monthlyBalance <= 0) {
+
+            statusElement.classList.add(
+                "neutral"
+            );
+
+            statusElement.textContent =
+                "Informe seu salário ou saldo disponível para começar o planejamento.";
+
+        } else if (
+            projectedBalance < 0
+        ) {
+
+            statusElement.classList.add(
+                "danger"
+            );
+
+            statusElement.textContent =
+                `Atenção: despesas + cotações mais baratas ultrapassam seu saldo em ${formatCurrency(
+                    Math.abs(
+                        projectedBalance
+                    )
+                )}.`;
+
+        } else if (
+            projectedBalance <
+            monthlyBalance * 0.10
+        ) {
+
+            statusElement.classList.add(
+                "warning"
+            );
+
+            statusElement.textContent =
+                "Cuidado: depois das despesas e das cotações planejadas, sobra menos de 10% do saldo mensal.";
+
+        } else {
+
+            statusElement.classList.add(
+                "success"
+            );
+
+            statusElement.textContent =
+                `Planejamento dentro do saldo: ainda restariam ${formatCurrency(
+                    projectedBalance
+                )}.`;
+        }
+    }
+
+
+    /*
+        Para os alertas individuais,
+        usamos o saldo depois das despesas,
+        antes das compras planejadas.
+    */
+
+    renderDashboardQuotes(
+        availableBalance
+    );
+}
+
+
+/* =====================================================
    DASHBOARD
-========================================================= */
+===================================================== */
 
 function updateDashboard() {
 
@@ -2366,7 +2420,6 @@ function updateDashboard() {
             "totalExpenses"
         );
 
-
     if (totalElement) {
 
         totalElement.textContent =
@@ -2380,7 +2433,6 @@ function updateDashboard() {
         document.getElementById(
             "monthlyExpenses"
         );
-
 
     if (monthlyElement) {
 
@@ -2396,7 +2448,6 @@ function updateDashboard() {
             "quoteCount"
         );
 
-
     if (quoteCount) {
 
         quoteCount.textContent =
@@ -2409,7 +2460,6 @@ function updateDashboard() {
             "possibleSaving"
         );
 
-
     if (saving) {
 
         saving.textContent =
@@ -2419,15 +2469,19 @@ function updateDashboard() {
     }
 
 
+    updateBudgetPlanning(
+        monthlyExpenses
+    );
+
     renderRecentExpenses();
 
     renderCategorySummary();
 }
 
 
-/* =========================================================
+/* =====================================================
    DASHBOARD — ÚLTIMAS DESPESAS
-========================================================= */
+===================================================== */
 
 function renderRecentExpenses() {
 
@@ -2435,7 +2489,6 @@ function renderRecentExpenses() {
         document.getElementById(
             "recentExpenses"
         );
-
 
     if (!container) {
         return;
@@ -2467,7 +2520,8 @@ function renderRecentExpenses() {
                 </strong>
 
                 <p>
-                    Suas despesas recentes aparecerão aqui.
+                    Suas despesas recentes
+                    aparecerão aqui.
                 </p>
 
             </div>
@@ -2480,48 +2534,48 @@ function renderRecentExpenses() {
 
     container.innerHTML =
         recent
-            .map(
-                expense => `
+            .map(expense => `
 
-                    <div class="recent-item">
+                <div class="recent-item">
 
-                        <div class="recent-main">
+                    <div class="recent-main">
 
-                            <strong>
-                                ${escapeHTML(
-                                    expense.description
-                                )}
-                            </strong>
-
-                            <span>
-                                ${escapeHTML(
-                                    expense.category
-                                )}
-                                •
-                                ${formatDate(
-                                    expense.date
-                                )}
-                            </span>
-
-                        </div>
-
-                        <div class="recent-value">
-                            ${formatCurrency(
-                                expense.amount
+                        <strong>
+                            ${escapeHTML(
+                                expense.description
                             )}
-                        </div>
+                        </strong>
+
+                        <span>
+                            ${escapeHTML(
+                                expense.category
+                            )}
+                            •
+                            ${formatDate(
+                                expense.date
+                            )}
+                        </span>
 
                     </div>
 
-                `
-            )
+                    <div class="recent-value">
+
+                        ${formatCurrency(
+                            expense.amount
+                        )}
+
+                    </div>
+
+                </div>
+
+            `)
             .join("");
 }
 
 
-/* =========================================================
+/* =====================================================
    DASHBOARD — CATEGORIAS
-========================================================= */
+===================================================== */
 
 function renderCategorySummary() {
 
@@ -2529,7 +2583,6 @@ function renderCategorySummary() {
         document.getElementById(
             "categorySummary"
         );
-
 
     if (!container) {
         return;
@@ -2546,7 +2599,6 @@ function renderCategorySummary() {
                 expense.category ||
                 "Outros";
 
-
             totals[category] =
                 (
                     totals[category] ||
@@ -2561,14 +2613,12 @@ function renderCategorySummary() {
 
 
     const entries =
-        Object.entries(
-            totals
-        )
-        .sort(
-            (a, b) =>
-                b[1] - a[1]
-        )
-        .slice(0, 6);
+        Object.entries(totals)
+            .sort(
+                (a, b) =>
+                    b[1] - a[1]
+            )
+            .slice(0, 6);
 
 
     if (!entries.length) {
@@ -2586,7 +2636,8 @@ function renderCategorySummary() {
                 </strong>
 
                 <p>
-                    Cadastre despesas para visualizar o resumo.
+                    Cadastre despesas para
+                    visualizar o resumo.
                 </p>
 
             </div>
@@ -2614,12 +2665,15 @@ function renderCategorySummary() {
                             ) * 100
                             : 0;
 
-
                     return `
 
-                        <div class="category-summary-item">
+                        <div class="
+                            category-summary-item
+                        ">
 
-                            <div class="category-summary-header">
+                            <div class="
+                                category-summary-header
+                            ">
 
                                 <span>
                                     ${escapeHTML(
@@ -2635,7 +2689,6 @@ function renderCategorySummary() {
 
                             </div>
 
-
                             <div class="progress">
 
                                 <div
@@ -2648,15 +2701,16 @@ function renderCategorySummary() {
                         </div>
 
                     `;
+
                 }
             )
             .join("");
 }
 
 
-/* =========================================================
+/* =====================================================
    CATEGORIAS — PÁGINA
-========================================================= */
+===================================================== */
 
 function renderCategories() {
 
@@ -2664,7 +2718,6 @@ function renderCategories() {
         document.getElementById(
             "categoriesContainer"
         );
-
 
     if (!container) {
         return;
@@ -2675,47 +2728,50 @@ function renderCategories() {
         Object.entries(
             categories
         )
-        .map(
-            ([category, subcategories]) => `
+            .map(
+                ([category, subcategories]) => `
 
-                <div class="category-card">
+                    <div class="category-card">
 
-                    <h3>
-                        ${escapeHTML(
-                            category
-                        )}
-                    </h3>
+                        <h3>
+                            ${escapeHTML(
+                                category
+                            )}
+                        </h3>
 
+                        <div class="subcategory-list">
 
-                    <div class="subcategory-list">
+                            ${subcategories
+                                .map(
+                                    subcategory => `
 
-                        ${subcategories
-                            .map(
-                                subcategory => `
-
-                                    <span class="subcategory">
-                                        ${escapeHTML(
+                                        <span class="
                                             subcategory
-                                        )}
-                                    </span>
+                                        ">
 
-                                `
-                            )
-                            .join("")}
+                                            ${escapeHTML(
+                                                subcategory
+                                            )}
+
+                                        </span>
+
+                                    `
+                                )
+                                .join("")}
+
+                        </div>
 
                     </div>
 
-                </div>
-
-            `
-        )
-        .join("");
+                `
+            )
+            .join("");
 }
 
 
-/* =========================================================
+/* =====================================================
    FILTROS
-========================================================= */
+===================================================== */
 
 function setupFilters() {
 
@@ -2750,12 +2806,10 @@ function setupFilters() {
         renderExpenses
     );
 
-
     expenseCategoryFilter?.addEventListener(
         "change",
         renderExpenses
     );
-
 
     expenseMonthFilter?.addEventListener(
         "change",
@@ -2768,7 +2822,6 @@ function setupFilters() {
         renderQuotes
     );
 
-
     quoteCategoryFilter?.addEventListener(
         "change",
         renderQuotes
@@ -2776,9 +2829,9 @@ function setupFilters() {
 }
 
 
-/* =========================================================
+/* =====================================================
    MODAIS
-========================================================= */
+===================================================== */
 
 function setupModalEvents() {
 
@@ -2793,36 +2846,37 @@ function setupModalEvents() {
         );
 
 
-    expenseModal?.addEventListener(
-        "click",
-        event => {
+    [expenseModal, quoteModal]
+        .forEach(modal => {
 
-            if (
-                event.target ===
-                expenseModal
-            ) {
-
-                closeExpenseModal();
+            if (!modal) {
+                return;
             }
 
-        }
-    );
+            modal.addEventListener(
+                "click",
+                event => {
 
+                    if (
+                        event.target ===
+                        modal
+                    ) {
 
-    quoteModal?.addEventListener(
-        "click",
-        event => {
+                        modal.classList.remove(
+                            "show"
+                        );
 
-            if (
-                event.target ===
-                quoteModal
-            ) {
+                        editingExpenseId =
+                            null;
 
-                closeQuoteModal();
-            }
+                        editingQuoteId =
+                            null;
+                    }
 
-        }
-    );
+                }
+            );
+
+        });
 
 
     document.addEventListener(
@@ -2830,23 +2884,26 @@ function setupModalEvents() {
         event => {
 
             if (
-                event.key ===
+                event.key !==
                 "Escape"
             ) {
-
-                closeExpenseModal();
-
-                closeQuoteModal();
+                return;
             }
+
+            closeExpenseModal();
+            closeQuoteModal();
 
         }
     );
+
+
+    setupTheme();
 }
 
 
-/* =========================================================
+/* =====================================================
    MÁSCARA DE DINHEIRO
-========================================================= */
+===================================================== */
 
 function moneyMask(input) {
 
@@ -2885,57 +2942,111 @@ function moneyMask(input) {
 }
 
 
-/* =========================================================
-   CONVERTER DINHEIRO
-========================================================= */
+/* =====================================================
+   PARSER DE DINHEIRO
+===================================================== */
 
 function parseMoney(value) {
 
-    if (!value) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
         return 0;
+    }
+
+
+    if (typeof value === "number") {
+        return value;
     }
 
 
     let text =
         String(value)
+            .trim();
+
+
+    if (!text) {
+        return 0;
+    }
+
+
+    text =
+        text
             .replace(
-                /[^\d,.-]/g,
+                /R\$/gi,
+                ""
+            )
+            .replace(
+                /\s/g,
                 ""
             );
 
+
+    /*
+        Se estiver no formato brasileiro:
+        1.234,56
+    */
 
     if (
         text.includes(",")
     ) {
 
         text =
-            text.replace(
-                /\./g,
-                ""
-            );
+            text
+                .replace(
+                    /\./g,
+                    ""
+                )
+                .replace(
+                    ",",
+                    "."
+                );
+
+        const result =
+            parseFloat(text);
+
+        return Number.isFinite(
+            result
+        )
+            ? result
+            : 0;
+    }
 
 
-        text =
-            text.replace(
-                ",",
-                "."
-            );
+    /*
+        Se veio apenas de dígitos,
+        tratamos como centavos.
+        Ex.: 3000 => 30,00
+    */
+
+    if (
+        /^\d+$/.test(text)
+    ) {
+
+        return (
+            parseInt(
+                text,
+                10
+            ) / 100
+        );
     }
 
 
     const result =
         parseFloat(text);
 
-
-    return isNaN(result)
-        ? 0
-        : result;
+    return Number.isFinite(
+        result
+    )
+        ? result
+        : 0;
 }
 
 
-/* =========================================================
-   FORMATAR MOEDA
-========================================================= */
+/* =====================================================
+   FORMATAÇÃO
+===================================================== */
 
 function formatCurrency(value) {
 
@@ -2946,130 +3057,108 @@ function formatCurrency(value) {
             currency: "BRL"
         }
     ).format(
-        Number(value) || 0
+        Number(value || 0)
     );
 }
 
 
-/* =========================================================
-   DATA ATUAL
-========================================================= */
+function formatDate(date) {
+
+    if (!date) {
+        return "-";
+    }
+
+    const parts =
+        date.split("-");
+
+    if (
+        parts.length !== 3
+    ) {
+        return date;
+    }
+
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
 
 function getTodayDate() {
 
-    const now =
+    const date =
         new Date();
 
-
     const year =
-        now.getFullYear();
-
+        date.getFullYear();
 
     const month =
         String(
-            now.getMonth() + 1
+            date.getMonth() + 1
         ).padStart(
             2,
             "0"
         );
-
 
     const day =
         String(
-            now.getDate()
+            date.getDate()
         ).padStart(
             2,
             "0"
         );
-
 
     return `${year}-${month}-${day}`;
 }
 
 
-/* =========================================================
-   MÊS ATUAL
-========================================================= */
-
 function getCurrentMonth() {
 
-    const now =
+    const date =
         new Date();
 
-
     const year =
-        now.getFullYear();
-
+        date.getFullYear();
 
     const month =
         String(
-            now.getMonth() + 1
+            date.getMonth() + 1
         ).padStart(
             2,
             "0"
         );
 
-
     return `${year}-${month}`;
 }
 
 
-/* =========================================================
-   FORMATAR DATA
-========================================================= */
+/* =====================================================
+   ID
+===================================================== */
 
-function formatDate(
-    dateString
-) {
-
-    if (!dateString) {
-        return "-";
-    }
-
-
-    const parts =
-        String(
-            dateString
-        ).split("-");
-
+function generateId() {
 
     if (
-        parts.length === 3
+        window.crypto &&
+        typeof window.crypto.randomUUID ===
+            "function"
     ) {
 
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        return window.crypto.randomUUID();
+
     }
 
-
-    const date =
-        new Date(
-            dateString
-        );
-
-
-    if (
-        isNaN(
-            date.getTime()
-        )
-    ) {
-
-        return dateString;
-    }
-
-
-    return date.toLocaleDateString(
-        "pt-BR"
+    return (
+        Date.now().toString(36) +
+        Math.random()
+            .toString(36)
+            .substring(2)
     );
 }
 
 
-/* =========================================================
-   ESCAPAR HTML
-========================================================= */
+/* =====================================================
+   SEGURANÇA HTML
+===================================================== */
 
-function escapeHTML(
-    value
-) {
+function escapeHTML(value) {
 
     return String(
         value ?? ""
@@ -3097,13 +3186,13 @@ function escapeHTML(
 }
 
 
-/* =========================================================
+/* =====================================================
    TOAST
-========================================================= */
+===================================================== */
 
-function showToast(
-    message
-) {
+let toastTimer = null;
+
+function showToast(message) {
 
     const toast =
         document.getElementById(
@@ -3115,15 +3204,12 @@ function showToast(
             "toastMessage"
         );
 
-
     if (!toast || !toastMessage) {
         return;
     }
 
-
     toastMessage.textContent =
         message;
-
 
     toast.classList.add(
         "show"
@@ -3131,11 +3217,11 @@ function showToast(
 
 
     clearTimeout(
-        toastTimeout
+        toastTimer
     );
 
 
-    toastTimeout =
+    toastTimer =
         setTimeout(
             () => {
 
@@ -3144,6 +3230,6 @@ function showToast(
                 );
 
             },
-            2500
+            2800
         );
 }
