@@ -1,65 +1,165 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="OrçaFácil — controle financeiro pessoal simples."
+    >
 
     <title>OrçaFácil</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
 </head>
+
 
 <body>
 
-    <!-- =========================
+
+    <!-- =====================================================
          SIDEBAR
-    ========================== -->
+    ====================================================== -->
 
     <aside class="sidebar">
 
         <div class="brand">
-            <div class="brand-icon">₿</div>
+
+            <div class="brand-icon">
+                ₿
+            </div>
 
             <div>
-                <h1>OrçaFácil</h1>
-                <span>Finanças pessoais</span>
+
+                <h1>
+                    OrçaFácil
+                </h1>
+
+                <span>
+                    Finanças pessoais
+                </span>
+
             </div>
+
         </div>
+
 
         <nav class="menu">
 
-            <button class="menu-item active" data-page="dashboard">
-                <span>🏠</span>
-                <span>Dashboard</span>
+            <button
+                type="button"
+                class="menu-item active"
+                data-page="dashboard"
+                onclick="showPage('dashboard')"
+            >
+
+                <span>
+                    🏠
+                </span>
+
+                <span>
+                    Dashboard
+                </span>
+
             </button>
 
-            <button class="menu-item" data-page="despesas">
-                <span>💸</span>
-                <span>Despesas</span>
+
+            <button
+                type="button"
+                class="menu-item"
+                data-page="despesas"
+                onclick="showPage('despesas')"
+            >
+
+                <span>
+                    💸
+                </span>
+
+                <span>
+                    Despesas
+                </span>
+
             </button>
 
-            <button class="menu-item" data-page="cotacoes">
-                <span>🛒</span>
-                <span>Cotações</span>
+
+            <button
+                type="button"
+                class="menu-item"
+                data-page="cotacoes"
+                onclick="showPage('cotacoes')"
+            >
+
+                <span>
+                    🛒
+                </span>
+
+                <span>
+                    Cotações
+                </span>
+
             </button>
 
-            <button class="menu-item" data-page="categorias">
-                <span>🗂️</span>
-                <span>Categorias</span>
+
+            <button
+                type="button"
+                class="menu-item"
+                data-page="categorias"
+                onclick="showPage('categorias')"
+            >
+
+                <span>
+                    🗂️
+                </span>
+
+                <span>
+                    Categorias
+                </span>
+
             </button>
 
         </nav>
 
+
         <div class="sidebar-bottom">
 
-            <button class="theme-button" id="themeToggle">
-                <span id="themeIcon">🌙</span>
-                <span id="themeText">Modo escuro</span>
+            <button
+                type="button"
+                class="theme-button"
+                id="themeToggle"
+            >
+
+                <span id="themeIcon">
+                    🌙
+                </span>
+
+                <span id="themeText">
+                    Modo escuro
+                </span>
+
             </button>
 
+
             <div class="sidebar-footer">
-                <small>OrçaFácil</small>
-                <span>Controle financeiro simples</span>
+
+                <small>
+                    OrçaFácil
+                </small>
+
+                <span>
+                    Controle financeiro simples
+                </span>
+
             </div>
 
         </div>
@@ -67,51 +167,86 @@
     </aside>
 
 
-    <!-- =========================
+
+    <!-- =====================================================
          CONTEÚDO PRINCIPAL
-    ========================== -->
+    ====================================================== -->
 
     <main class="main-content">
 
-        <!-- HEADER MOBILE -->
+
+        <!-- =================================================
+             HEADER MOBILE
+        ================================================== -->
 
         <header class="mobile-header">
 
             <div class="mobile-brand">
-                <div class="brand-icon">₿</div>
-                <strong>OrçaFácil</strong>
+
+                <div class="brand-icon">
+                    ₿
+                </div>
+
+                <strong>
+                    OrçaFácil
+                </strong>
+
             </div>
 
-            <button id="mobileMenuButton" class="mobile-menu-button">
+
+            <button
+                type="button"
+                id="mobileMenuButton"
+                class="mobile-menu-button"
+                aria-label="Abrir menu"
+            >
                 ☰
             </button>
 
         </header>
 
 
-        <!-- =========================
-             DASHBOARD
-        ========================== -->
 
-        <section id="dashboard" class="page active">
+        <!-- =================================================
+             DASHBOARD
+        ================================================== -->
+
+        <section
+            id="dashboard"
+            class="page active"
+        >
 
             <div class="page-header">
 
                 <div>
-                    <h2>Dashboard</h2>
-                    <p>Veja um resumo das suas finanças.</p>
+
+                    <h2>
+                        Dashboard
+                    </h2>
+
+                    <p>
+                        Veja um resumo das suas finanças.
+                    </p>
+
                 </div>
 
-                <button class="primary-button" onclick="openExpenseModal()">
+
+                <button
+                    type="button"
+                    class="primary-button"
+                    onclick="openExpenseModal()"
+                >
                     + Nova despesa
                 </button>
 
             </div>
 
 
-            <!-- CARDS -->
+
+            <!-- CARDS DE RESUMO -->
 
             <div class="stats-grid">
+
 
                 <div class="stat-card">
 
@@ -120,11 +255,19 @@
                     </div>
 
                     <div>
-                        <span>Total de despesas</span>
-                        <strong id="totalExpenses">R$ 0,00</strong>
+
+                        <span>
+                            Total de despesas
+                        </span>
+
+                        <strong id="totalExpenses">
+                            R$ 0,00
+                        </strong>
+
                     </div>
 
                 </div>
+
 
 
                 <div class="stat-card">
@@ -134,11 +277,19 @@
                     </div>
 
                     <div>
-                        <span>Despesas este mês</span>
-                        <strong id="monthlyExpenses">R$ 0,00</strong>
+
+                        <span>
+                            Despesas este mês
+                        </span>
+
+                        <strong id="monthlyExpenses">
+                            R$ 0,00
+                        </strong>
+
                     </div>
 
                 </div>
+
 
 
                 <div class="stat-card">
@@ -148,11 +299,19 @@
                     </div>
 
                     <div>
-                        <span>Cotações</span>
-                        <strong id="quoteCount">0</strong>
+
+                        <span>
+                            Cotações
+                        </span>
+
+                        <strong id="quoteCount">
+                            0
+                        </strong>
+
                     </div>
 
                 </div>
+
 
 
                 <div class="stat-card">
@@ -162,88 +321,143 @@
                     </div>
 
                     <div>
-                        <span>Economia possível</span>
-                        <strong id="possibleSaving">R$ 0,00</strong>
+
+                        <span>
+                            Economia possível
+                        </span>
+
+                        <strong id="possibleSaving">
+                            R$ 0,00
+                        </strong>
+
                     </div>
 
                 </div>
 
+
             </div>
 
 
-            <!-- DASHBOARD GRID -->
+
+            <!-- DASHBOARD -->
 
             <div class="dashboard-grid">
+
+
+                <!-- ÚLTIMAS DESPESAS -->
 
                 <div class="card">
 
                     <div class="card-header">
 
                         <div>
-                            <h3>Últimas despesas</h3>
-                            <p>Seus lançamentos mais recentes.</p>
+
+                            <h3>
+                                Últimas despesas
+                            </h3>
+
+                            <p>
+                                Seus lançamentos mais recentes.
+                            </p>
+
                         </div>
 
+
                         <button
+                            type="button"
                             class="link-button"
-                            onclick="showPage('despesas')">
+                            onclick="showPage('despesas')"
+                        >
                             Ver todas
                         </button>
 
                     </div>
+
 
                     <div id="recentExpenses"></div>
 
                 </div>
 
 
+
+                <!-- RESUMO POR CATEGORIA -->
+
                 <div class="card">
 
                     <div class="card-header">
 
                         <div>
-                            <h3>Resumo por categoria</h3>
-                            <p>Onde seu dinheiro está indo.</p>
+
+                            <h3>
+                                Resumo por categoria
+                            </h3>
+
+                            <p>
+                                Onde seu dinheiro está indo.
+                            </p>
+
                         </div>
 
                     </div>
 
+
                     <div id="categorySummary"></div>
 
                 </div>
+
 
             </div>
 
         </section>
 
 
-        <!-- =========================
-             DESPESAS
-        ========================== -->
 
-        <section id="despesas" class="page">
+        <!-- =================================================
+             DESPESAS
+        ================================================== -->
+
+        <section
+            id="despesas"
+            class="page"
+        >
 
             <div class="page-header">
 
                 <div>
-                    <h2>Despesas</h2>
-                    <p>Controle tudo o que você efetivamente gastou.</p>
+
+                    <h2>
+                        Despesas
+                    </h2>
+
+                    <p>
+                        Controle tudo o que você efetivamente gastou.
+                    </p>
+
                 </div>
 
+
                 <button
+                    type="button"
                     class="primary-button"
-                    onclick="openExpenseModal()">
+                    onclick="openExpenseModal()"
+                >
                     + Nova despesa
                 </button>
 
             </div>
 
 
+
+            <!-- FILTROS -->
+
             <div class="filters-card">
+
 
                 <div class="search-box">
 
-                    <span>🔍</span>
+                    <span>
+                        🔍
+                    </span>
 
                     <input
                         type="text"
@@ -271,6 +485,9 @@
             </div>
 
 
+
+            <!-- TABELA -->
+
             <div class="card table-card">
 
                 <div class="table-wrapper">
@@ -281,31 +498,56 @@
 
                             <tr>
 
-                                <th>Data</th>
-                                <th>Produto / descrição</th>
-                                <th>Categoria</th>
-                                <th>Subcategoria</th>
-                                <th>Valor</th>
-                                <th>Ações</th>
+                                <th>
+                                    Data
+                                </th>
+
+                                <th>
+                                    Produto / descrição
+                                </th>
+
+                                <th>
+                                    Categoria
+                                </th>
+
+                                <th>
+                                    Subcategoria
+                                </th>
+
+                                <th>
+                                    Valor
+                                </th>
+
+                                <th>
+                                    Ações
+                                </th>
 
                             </tr>
 
                         </thead>
 
-                        <tbody id="expensesTableBody"></tbody>
+
+                        <tbody id="expensesTableBody">
+                        </tbody>
 
                     </table>
 
                 </div>
 
 
-                <div id="expensesEmpty" class="empty-state">
+
+                <div
+                    id="expensesEmpty"
+                    class="empty-state"
+                >
 
                     <div class="empty-icon">
                         💸
                     </div>
 
-                    <strong>Nenhuma despesa cadastrada</strong>
+                    <strong>
+                        Nenhuma despesa cadastrada
+                    </strong>
 
                     <p>
                         Comece adicionando sua primeira despesa.
@@ -318,36 +560,52 @@
         </section>
 
 
-        <!-- =========================
-             COTAÇÕES
-        ========================== -->
 
-        <section id="cotacoes" class="page">
+        <!-- =================================================
+             COTAÇÕES
+        ================================================== -->
+
+        <section
+            id="cotacoes"
+            class="page"
+        >
 
             <div class="page-header">
 
                 <div>
-                    <h2>Cotações</h2>
+
+                    <h2>
+                        Cotações
+                    </h2>
 
                     <p>
                         Compare preços e descubra onde comprar mais barato.
                     </p>
+
                 </div>
 
+
                 <button
+                    type="button"
                     class="primary-button"
-                    onclick="openQuoteModal()">
+                    onclick="openQuoteModal()"
+                >
                     + Nova cotação
                 </button>
 
             </div>
 
 
+
+            <!-- FILTROS -->
+
             <div class="filters-card">
 
                 <div class="search-box">
 
-                    <span>🔍</span>
+                    <span>
+                        🔍
+                    </span>
 
                     <input
                         type="text"
@@ -369,10 +627,23 @@
             </div>
 
 
-            <div id="quotesContainer" class="quotes-container"></div>
+
+            <!-- COTAÇÕES -->
+
+            <div
+                id="quotesContainer"
+                class="quotes-container"
+            >
+            </div>
 
 
-            <div id="quotesEmpty" class="card">
+
+            <!-- ESTADO VAZIO -->
+
+            <div
+                id="quotesEmpty"
+                class="card"
+            >
 
                 <div class="empty-state">
 
@@ -395,20 +666,28 @@
         </section>
 
 
-        <!-- =========================
-             CATEGORIAS
-        ========================== -->
 
-        <section id="categorias" class="page">
+        <!-- =================================================
+             CATEGORIAS
+        ================================================== -->
+
+        <section
+            id="categorias"
+            class="page"
+        >
 
             <div class="page-header">
 
                 <div>
-                    <h2>Categorias</h2>
+
+                    <h2>
+                        Categorias
+                    </h2>
 
                     <p>
                         Organize suas despesas e cotações.
                     </p>
+
                 </div>
 
             </div>
@@ -416,21 +695,28 @@
 
             <div
                 id="categoriesContainer"
-                class="categories-grid">
+                class="categories-grid"
+            >
             </div>
 
         </section>
 
+
     </main>
 
 
-    <!-- =========================
-         MODAL DESPESA
-    ========================== -->
 
-    <div id="expenseModal" class="modal-overlay">
+    <!-- =====================================================
+         MODAL — DESPESA
+    ====================================================== -->
+
+    <div
+        id="expenseModal"
+        class="modal-overlay"
+    >
 
         <div class="modal">
+
 
             <div class="modal-header">
 
@@ -446,22 +732,30 @@
 
                 </div>
 
+
                 <button
+                    type="button"
                     class="modal-close"
-                    onclick="closeExpenseModal()">
+                    onclick="closeExpenseModal()"
+                    aria-label="Fechar"
+                >
                     ×
                 </button>
 
             </div>
 
 
+
             <form id="expenseForm">
+
 
                 <input
                     type="hidden"
                     id="expenseId"
                 >
 
+
+                <!-- PRODUTO -->
 
                 <div class="form-group">
 
@@ -479,7 +773,11 @@
                 </div>
 
 
+
+                <!-- CATEGORIA -->
+
                 <div class="form-row">
+
 
                     <div class="form-group">
 
@@ -489,13 +787,17 @@
 
                         <select
                             id="expenseCategory"
-                            required>
+                            required
+                        >
+
                             <option value="">
                                 Selecione
                             </option>
+
                         </select>
 
                     </div>
+
 
 
                     <div class="form-group">
@@ -506,7 +808,8 @@
 
                         <select
                             id="expenseSubcategory"
-                            required>
+                            required
+                        >
 
                             <option value="">
                                 Selecione
@@ -516,8 +819,12 @@
 
                     </div>
 
+
                 </div>
 
+
+
+                <!-- VALOR -->
 
                 <div class="form-group">
 
@@ -537,6 +844,9 @@
                 </div>
 
 
+
+                <!-- DATA -->
+
                 <div class="form-group">
 
                     <label for="expenseDate">
@@ -552,6 +862,9 @@
                 </div>
 
 
+
+                <!-- OBSERVAÇÃO -->
+
                 <div class="form-group">
 
                     <label for="expenseNotes">
@@ -561,28 +874,35 @@
                     <textarea
                         id="expenseNotes"
                         rows="3"
-                        placeholder="Opcional">
-                    </textarea>
+                        placeholder="Opcional"
+                    ></textarea>
 
                 </div>
 
+
+
+                <!-- AÇÕES -->
 
                 <div class="modal-actions">
 
                     <button
                         type="button"
                         class="secondary-button"
-                        onclick="closeExpenseModal()">
+                        onclick="closeExpenseModal()"
+                    >
                         Cancelar
                     </button>
 
+
                     <button
                         type="submit"
-                        class="primary-button">
+                        class="primary-button"
+                    >
                         Salvar despesa
                     </button>
 
                 </div>
+
 
             </form>
 
@@ -591,13 +911,18 @@
     </div>
 
 
-    <!-- =========================
-         MODAL COTAÇÃO
-    ========================== -->
 
-    <div id="quoteModal" class="modal-overlay">
+    <!-- =====================================================
+         MODAL — COTAÇÃO
+    ====================================================== -->
+
+    <div
+        id="quoteModal"
+        class="modal-overlay"
+    >
 
         <div class="modal">
+
 
             <div class="modal-header">
 
@@ -613,22 +938,30 @@
 
                 </div>
 
+
                 <button
+                    type="button"
                     class="modal-close"
-                    onclick="closeQuoteModal()">
+                    onclick="closeQuoteModal()"
+                    aria-label="Fechar"
+                >
                     ×
                 </button>
 
             </div>
 
 
+
             <form id="quoteForm">
+
 
                 <input
                     type="hidden"
                     id="quoteId"
                 >
 
+
+                <!-- PRODUTO -->
 
                 <div class="form-group">
 
@@ -646,7 +979,11 @@
                 </div>
 
 
+
+                <!-- CATEGORIA -->
+
                 <div class="form-row">
+
 
                     <div class="form-group">
 
@@ -656,7 +993,8 @@
 
                         <select
                             id="quoteCategory"
-                            required>
+                            required
+                        >
 
                             <option value="">
                                 Selecione
@@ -665,6 +1003,7 @@
                         </select>
 
                     </div>
+
 
 
                     <div class="form-group">
@@ -675,7 +1014,8 @@
 
                         <select
                             id="quoteSubcategory"
-                            required>
+                            required
+                        >
 
                             <option value="">
                                 Selecione
@@ -685,8 +1025,12 @@
 
                     </div>
 
+
                 </div>
 
+
+
+                <!-- LOJA -->
 
                 <div class="form-group">
 
@@ -703,6 +1047,9 @@
 
                 </div>
 
+
+
+                <!-- PREÇO -->
 
                 <div class="form-group">
 
@@ -722,6 +1069,9 @@
                 </div>
 
 
+
+                <!-- DATA -->
+
                 <div class="form-group">
 
                     <label for="quoteDate">
@@ -737,6 +1087,9 @@
                 </div>
 
 
+
+                <!-- OBSERVAÇÃO -->
+
                 <div class="form-group">
 
                     <label for="quoteNotes">
@@ -747,28 +1100,35 @@
                         id="quoteNotes"
                         class="quote-notes"
                         rows="3"
-                        placeholder="Opcional">
-                    </textarea>
+                        placeholder="Opcional"
+                    ></textarea>
 
                 </div>
 
+
+
+                <!-- AÇÕES -->
 
                 <div class="modal-actions">
 
                     <button
                         type="button"
                         class="secondary-button"
-                        onclick="closeQuoteModal()">
+                        onclick="closeQuoteModal()"
+                    >
                         Cancelar
                     </button>
 
+
                     <button
                         type="submit"
-                        class="primary-button">
+                        class="primary-button"
+                    >
                         Salvar cotação
                     </button>
 
                 </div>
+
 
             </form>
 
@@ -777,16 +1137,29 @@
     </div>
 
 
-    <!-- =========================
-         TOAST
-    ========================== -->
 
-    <div id="toast" class="toast">
+    <!-- =====================================================
+         TOAST
+    ====================================================== -->
+
+    <div
+        id="toast"
+        class="toast"
+    >
+
         <span id="toastMessage"></span>
+
     </div>
 
 
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+
     <script src="app.js"></script>
 
+
 </body>
+
 </html>
