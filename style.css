@@ -132,6 +132,11 @@ textarea:focus {
 
 textarea {
     resize: vertical;
+    min-height: 82px;
+    line-height: 1.5;
+    vertical-align: top;
+    text-align: left;
+    padding: 11px 12px;
 }
 
 
@@ -1356,6 +1361,39 @@ body.dark .quote-price-row.cheapest {
     font-size: 9px;
 
     font-weight: 700;
+}
+
+
+/* =========================
+   DETALHES DA COTAÇÃO
+========================= */
+
+.quote-details {
+    margin-top: -1px;
+    padding: 12px 10px 2px;
+    border-top: 1px solid var(--border);
+    background: rgba(100,116,139,0.035);
+    border-radius: 0 0 8px 8px;
+}
+
+.quote-details[hidden] {
+    display: none;
+}
+
+.quote-details strong {
+    display: block;
+    font-size: 10px;
+    margin-bottom: 5px;
+    color: var(--text);
+}
+
+.quote-details p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 
