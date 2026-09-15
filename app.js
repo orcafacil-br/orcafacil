@@ -1,5 +1,19 @@
-const STORAGE_KEY = "orcafacil_data_v2";
-const QUOTES_STORAGE_KEY = "orcafacil_quotes_v1";
+/* =========================================================
+   ORÇAFÁCIL
+   APP.JS
+========================================================= */
+
+
+/* =========================================================
+   CONFIGURAÇÃO
+========================================================= */
+
+const STORAGE_KEY =
+    "orcafacil_data_v2";
+
+const QUOTES_STORAGE_KEY =
+    "orcafacil_quotes_v1";
+
 
 let appData = {
     expenses: [],
@@ -11,12 +25,15 @@ let quotes = [];
 let editingExpenseId = null;
 let editingQuoteId = null;
 
+let toastTimeout;
+
 
 /* =========================================================
    CATEGORIAS
 ========================================================= */
 
 const categories = {
+
     "Compras": [
         "Alimentos",
         "Higiene pessoal",
@@ -116,57 +133,81 @@ const categories = {
    INICIALIZAÇÃO
 ========================================================= */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
 
-    loadData();
-    loadQuotes();
+        loadData();
 
-    populateCategorySelects();
-    populateQuoteCategorySelect();
+        loadQuotes();
 
-    setupNavigation();
-    setupTheme();
-    setupMobileMenu();
+        loadTheme();
 
-    setupExpenseForm();
-    setupQuoteForm();
+        setupNavigation();
 
-    setupFilters();
+        setupMobileMenu();
 
-    updateDashboard();
-    renderExpenses();
-    renderQuotes();
-    renderCategories();
+        populateCategorySelects();
 
-});
+        populateQuoteCategorySelect();
+
+        setupExpenseForm();
+
+        setupQuoteForm();
+
+        setupFilters();
+
+        renderCategories();
+
+        renderExpenses();
+
+        renderQuotes();
+
+        updateDashboard();
+
+        setupModalEvents();
+
+    }
+);
 
 
 /* =========================================================
-   STORAGE
+   STORAGE — DESPESAS
 ========================================================= */
 
 function loadData() {
 
     try {
 
-        const savedData =
-            localStorage.getItem(STORAGE_KEY);
+        const saved =
+            localStorage.getItem(
+                STORAGE_KEY
+            );
 
-        if (savedData) {
+        if (!saved) {
+            return;
+        }
 
-            const parsed =
-                JSON.parse(savedData);
+        const parsed =
+            JSON.parse(saved);
 
-            appData = {
-                expenses: Array.isArray(parsed.expenses)
+        appData = {
+
+            expenses:
+                Array.isArray(
+                    parsed.expenses
+                )
                     ? parsed.expenses
                     : [],
 
-                budgets: Array.isArray(parsed.budgets)
+            budgets:
+                Array.isArray(
+                    parsed.budgets
+                )
                     ? parsed.budgets
                     : []
-            };
-        }
+
+        };
 
     } catch (error) {
 
@@ -192,25 +233,30 @@ function saveData() {
 }
 
 
+/* =========================================================
+   STORAGE — COTAÇÕES
+========================================================= */
+
 function loadQuotes() {
 
     try {
 
-        const savedQuotes =
+        const saved =
             localStorage.getItem(
                 QUOTES_STORAGE_KEY
             );
 
-        if (savedQuotes) {
-
-            const parsed =
-                JSON.parse(savedQuotes);
-
-            quotes =
-                Array.isArray(parsed)
-                    ? parsed
-                    : [];
+        if (!saved) {
+            return;
         }
+
+        const parsed =
+            JSON.parse(saved);
+
+        quotes =
+            Array.isArray(parsed)
+                ? parsed
+                : [];
 
     } catch (error) {
 
@@ -239,50 +285,20 @@ function saveQuotes() {
 
 function setupNavigation() {
 
-    const navButtons =
+    const menuItems =
         document.querySelectorAll(
-            ".nav-button"
+            ".menu-item"
         );
 
-    const sections =
-        document.querySelectorAll(
-            ".page-section"
-        );
+    menuItems.forEach(item => {
 
-    navButtons.forEach(button => {
-
-        button.addEventListener(
+        item.addEventListener(
             "click",
             () => {
 
-                const target =
-                    button.dataset.section;
-
-                navButtons.forEach(btn => {
-                    btn.classList.remove("active");
-                });
-
-                button.classList.add("active");
-
-                sections.forEach(section => {
-
-                    section.classList.toggle(
-                        "active",
-                        section.id === target
-                    );
-
-                });
-
-                const mobileMenu =
-                    document.querySelector(
-                        ".sidebar"
-                    );
-
-                if (mobileMenu) {
-                    mobileMenu.classList.remove(
-                        "mobile-open"
-                    );
-                }
+                showPage(
+                    item.dataset.page
+                );
 
             }
         );
@@ -291,81 +307,59 @@ function setupNavigation() {
 }
 
 
-/* =========================================================
-   TEMA
-========================================================= */
+function showPage(pageId) {
 
-function setupTheme() {
+    document
+        .querySelectorAll(".page")
+        .forEach(page => {
 
-    const themeButton =
-        document.getElementById(
-            "themeToggle"
-        );
-
-    if (!themeButton) {
-        return;
-    }
-
-    const savedTheme =
-        localStorage.getItem(
-            "orcafacil_theme"
-        );
-
-    if (savedTheme === "dark") {
-
-        document.body.classList.add(
-            "dark"
-        );
-    }
-
-    updateThemeIcon();
-
-    themeButton.addEventListener(
-        "click",
-        () => {
-
-            document.body.classList.toggle(
-                "dark"
+            page.classList.remove(
+                "active"
             );
 
-            const isDark =
-                document.body.classList.contains(
-                    "dark"
-                );
-
-            localStorage.setItem(
-                "orcafacil_theme",
-                isDark
-                    ? "dark"
-                    : "light"
-            );
-
-            updateThemeIcon();
-        }
-    );
-}
+        });
 
 
-function updateThemeIcon() {
-
-    const themeButton =
+    const page =
         document.getElementById(
-            "themeToggle"
+            pageId
         );
 
-    if (!themeButton) {
-        return;
+
+    if (page) {
+
+        page.classList.add(
+            "active"
+        );
     }
 
-    const isDark =
-        document.body.classList.contains(
-            "dark"
+
+    document
+        .querySelectorAll(
+            ".menu-item"
+        )
+        .forEach(item => {
+
+            item.classList.toggle(
+                "active",
+                item.dataset.page ===
+                    pageId
+            );
+
+        });
+
+
+    const sidebar =
+        document.querySelector(
+            ".sidebar"
         );
 
-    themeButton.textContent =
-        isDark
-            ? "☀"
-            : "☾";
+    if (sidebar) {
+
+        sidebar.classList.remove(
+            "open"
+        );
+    }
 }
 
 
@@ -375,9 +369,9 @@ function updateThemeIcon() {
 
 function setupMobileMenu() {
 
-    const menuButton =
-        document.querySelector(
-            ".mobile-menu-button"
+    const button =
+        document.getElementById(
+            "mobileMenuButton"
         );
 
     const sidebar =
@@ -385,24 +379,129 @@ function setupMobileMenu() {
             ".sidebar"
         );
 
-    if (!menuButton || !sidebar) {
+    if (!button || !sidebar) {
         return;
     }
 
-    menuButton.addEventListener(
+    button.addEventListener(
         "click",
         () => {
 
             sidebar.classList.toggle(
-                "mobile-open"
+                "open"
             );
+
         }
     );
 }
 
 
 /* =========================================================
-   CATEGORIAS
+   TEMA
+========================================================= */
+
+function loadTheme() {
+
+    const saved =
+        localStorage.getItem(
+            "orcafacil_theme"
+        );
+
+    if (saved === "dark") {
+
+        document.body.classList.add(
+            "dark"
+        );
+
+    } else {
+
+        document.body.classList.remove(
+            "dark"
+        );
+    }
+
+    updateThemeButton();
+}
+
+
+function toggleTheme() {
+
+    document.body.classList.toggle(
+        "dark"
+    );
+
+    const isDark =
+        document.body.classList.contains(
+            "dark"
+        );
+
+    localStorage.setItem(
+        "orcafacil_theme",
+        isDark
+            ? "dark"
+            : "light"
+    );
+
+    updateThemeButton();
+}
+
+
+function updateThemeButton() {
+
+    const icon =
+        document.getElementById(
+            "themeIcon"
+        );
+
+    const text =
+        document.getElementById(
+            "themeText"
+        );
+
+    const isDark =
+        document.body.classList.contains(
+            "dark"
+        );
+
+    if (icon) {
+
+        icon.textContent =
+            isDark
+                ? "☀️"
+                : "🌙";
+    }
+
+    if (text) {
+
+        text.textContent =
+            isDark
+                ? "Modo claro"
+                : "Modo escuro";
+    }
+}
+
+
+document.addEventListener(
+    "click",
+    event => {
+
+        if (
+            event.target.id ===
+            "themeToggle" ||
+            event.target.closest(
+                "#themeToggle"
+            )
+        ) {
+
+            toggleTheme();
+        }
+
+    }
+);
+
+
+/* =========================================================
+   CATEGORIAS — DESPESAS
 ========================================================= */
 
 function populateCategorySelects() {
@@ -412,71 +511,22 @@ function populateCategorySelects() {
             "expenseCategory"
         );
 
-    if (!categorySelect) {
-        return;
-    }
-
-    categorySelect.innerHTML =
-        '<option value="">Selecione uma categoria</option>';
-
-    Object.keys(categories).forEach(
-        category => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-            option.value = category;
-            option.textContent = category;
-
-            categorySelect.appendChild(
-                option
-            );
-        }
-    );
-
-    categorySelect.addEventListener(
-        "change",
-        updateSubcategories
-    );
-
-    updateSubcategories();
-}
-
-
-function updateSubcategories() {
-
-    const categorySelect =
+    const filterSelect =
         document.getElementById(
-            "expenseCategory"
+            "expenseCategoryFilter"
         );
 
-    const subcategorySelect =
-        document.getElementById(
-            "expenseSubcategory"
-        );
 
-    if (
-        !categorySelect ||
-        !subcategorySelect
-    ) {
-        return;
-    }
+    if (categorySelect) {
 
-    const selectedCategory =
-        categorySelect.value;
+        categorySelect.innerHTML =
+            `<option value="">
+                Selecione
+            </option>`;
 
-    subcategorySelect.innerHTML =
-        '<option value="">Selecione uma subcategoria</option>';
 
-    if (
-        selectedCategory &&
-        categories[selectedCategory]
-    ) {
-
-        categories[selectedCategory].forEach(
-            subcategory => {
+        Object.keys(categories)
+            .forEach(category => {
 
                 const option =
                     document.createElement(
@@ -484,19 +534,117 @@ function updateSubcategories() {
                     );
 
                 option.value =
-                    subcategory;
+                    category;
 
                 option.textContent =
-                    subcategory;
+                    category;
 
-                subcategorySelect.appendChild(
+                categorySelect.appendChild(
                     option
                 );
-            }
-        );
+
+            });
+    }
+
+
+    if (filterSelect) {
+
+        filterSelect.innerHTML =
+            `<option value="">
+                Todas as categorias
+            </option>`;
+
+
+        Object.keys(categories)
+            .forEach(category => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    category;
+
+                option.textContent =
+                    category;
+
+                filterSelect.appendChild(
+                    option
+                );
+
+            });
     }
 }
 
+
+function updateSubcategories(
+    selectedValue = ""
+) {
+
+    const category =
+        document.getElementById(
+            "expenseCategory"
+        );
+
+    const subcategory =
+        document.getElementById(
+            "expenseSubcategory"
+        );
+
+    if (!category || !subcategory) {
+        return;
+    }
+
+    subcategory.innerHTML =
+        `<option value="">
+            Selecione
+        </option>`;
+
+
+    if (!category.value) {
+        return;
+    }
+
+
+    const subcategories =
+        categories[
+            category.value
+        ] || [];
+
+
+    subcategories.forEach(
+        item => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                item;
+
+            option.textContent =
+                item;
+
+            subcategory.appendChild(
+                option
+            );
+        }
+    );
+
+
+    if (selectedValue) {
+
+        subcategory.value =
+            selectedValue;
+    }
+}
+
+
+/* =========================================================
+   CATEGORIAS — COTAÇÕES
+========================================================= */
 
 function populateQuoteCategorySelect() {
 
@@ -505,71 +653,22 @@ function populateQuoteCategorySelect() {
             "quoteCategory"
         );
 
-    if (!categorySelect) {
-        return;
-    }
-
-    categorySelect.innerHTML =
-        '<option value="">Selecione uma categoria</option>';
-
-    Object.keys(categories).forEach(
-        category => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-            option.value = category;
-            option.textContent = category;
-
-            categorySelect.appendChild(
-                option
-            );
-        }
-    );
-
-    categorySelect.addEventListener(
-        "change",
-        updateQuoteSubcategories
-    );
-
-    updateQuoteSubcategories();
-}
-
-
-function updateQuoteSubcategories() {
-
-    const categorySelect =
+    const filterSelect =
         document.getElementById(
-            "quoteCategory"
+            "quoteCategoryFilter"
         );
 
-    const subcategorySelect =
-        document.getElementById(
-            "quoteSubcategory"
-        );
 
-    if (
-        !categorySelect ||
-        !subcategorySelect
-    ) {
-        return;
-    }
+    if (categorySelect) {
 
-    const selectedCategory =
-        categorySelect.value;
+        categorySelect.innerHTML =
+            `<option value="">
+                Selecione
+            </option>`;
 
-    subcategorySelect.innerHTML =
-        '<option value="">Selecione uma subcategoria</option>';
 
-    if (
-        selectedCategory &&
-        categories[selectedCategory]
-    ) {
-
-        categories[selectedCategory].forEach(
-            subcategory => {
+        Object.keys(categories)
+            .forEach(category => {
 
                 const option =
                     document.createElement(
@@ -577,22 +676,116 @@ function updateQuoteSubcategories() {
                     );
 
                 option.value =
-                    subcategory;
+                    category;
 
                 option.textContent =
-                    subcategory;
+                    category;
 
-                subcategorySelect.appendChild(
+                categorySelect.appendChild(
                     option
                 );
-            }
+
+            });
+    }
+
+
+    if (filterSelect) {
+
+        filterSelect.innerHTML =
+            `<option value="">
+                Todas as categorias
+            </option>`;
+
+
+        Object.keys(categories)
+            .forEach(category => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    category;
+
+                option.textContent =
+                    category;
+
+                filterSelect.appendChild(
+                    option
+                );
+
+            });
+    }
+}
+
+
+function updateQuoteSubcategories(
+    selectedValue = ""
+) {
+
+    const category =
+        document.getElementById(
+            "quoteCategory"
         );
+
+    const subcategory =
+        document.getElementById(
+            "quoteSubcategory"
+        );
+
+    if (!category || !subcategory) {
+        return;
+    }
+
+    subcategory.innerHTML =
+        `<option value="">
+            Selecione
+        </option>`;
+
+
+    if (!category.value) {
+        return;
+    }
+
+
+    const subcategories =
+        categories[
+            category.value
+        ] || [];
+
+
+    subcategories.forEach(
+        item => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                item;
+
+            option.textContent =
+                item;
+
+            subcategory.appendChild(
+                option
+            );
+        }
+    );
+
+
+    if (selectedValue) {
+
+        subcategory.value =
+            selectedValue;
     }
 }
 
 
 /* =========================================================
-   DESPESAS
+   FORMULÁRIO — DESPESA
 ========================================================= */
 
 function setupExpenseForm() {
@@ -602,38 +795,57 @@ function setupExpenseForm() {
             "expenseForm"
         );
 
-    const amountInput =
-        document.getElementById(
-            "expenseAmount"
-        );
-
     if (!form) {
         return;
     }
 
-    if (amountInput) {
-
-        amountInput.addEventListener(
-            "input",
-            () => {
-                moneyMask(amountInput);
-            }
-        );
-    }
 
     form.addEventListener(
         "submit",
-        event => {
+        saveExpense
+    );
 
-            event.preventDefault();
 
-            saveExpense();
+    const category =
+        document.getElementById(
+            "expenseCategory"
+        );
+
+
+    category?.addEventListener(
+        "change",
+        () => {
+
+            updateSubcategories();
+
+        }
+    );
+
+
+    const amount =
+        document.getElementById(
+            "expenseAmount"
+        );
+
+
+    amount?.addEventListener(
+        "input",
+        () => {
+
+            moneyMask(amount);
+
         }
     );
 }
 
 
-function openExpenseModal(id = null) {
+/* =========================================================
+   ABRIR DESPESA
+========================================================= */
+
+function openExpenseModal(
+    expenseId = null
+) {
 
     const modal =
         document.getElementById(
@@ -645,90 +857,115 @@ function openExpenseModal(id = null) {
             "expenseForm"
         );
 
+    if (!modal || !form) {
+        return;
+    }
+
+
+    form.reset();
+
+    editingExpenseId =
+        expenseId;
+
+
     const title =
         document.getElementById(
             "expenseModalTitle"
         );
 
-    if (!modal || !form) {
-        return;
-    }
 
-    editingExpenseId = id;
-
-    if (id) {
+    if (expenseId) {
 
         const expense =
             appData.expenses.find(
-                item => item.id === id
+                item =>
+                    item.id ===
+                    expenseId
             );
+
 
         if (!expense) {
             return;
         }
 
-        if (title) {
-            title.textContent =
-                "Editar despesa";
-        }
+
+        title.textContent =
+            "Editar despesa";
+
 
         document.getElementById(
             "expenseDescription"
         ).value =
             expense.description || "";
 
+
         document.getElementById(
             "expenseCategory"
         ).value =
             expense.category || "";
 
-        updateSubcategories();
 
-        document.getElementById(
-            "expenseSubcategory"
-        ).value =
-            expense.subcategory || "";
+        updateSubcategories(
+            expense.subcategory
+        );
+
 
         document.getElementById(
             "expenseAmount"
         ).value =
-            formatCurrency(expense.amount);
+            formatCurrency(
+                expense.amount
+            );
+
 
         document.getElementById(
             "expenseDate"
         ).value =
             expense.date || "";
 
+
         document.getElementById(
             "expenseNotes"
         ).value =
             expense.notes || "";
 
+
     } else {
 
-        if (title) {
-            title.textContent =
-                "Nova despesa";
-        }
+        title.textContent =
+            "Nova despesa";
 
-        form.reset();
 
-        const dateInput =
-            document.getElementById(
-                "expenseDate"
-            );
-
-        if (dateInput) {
-            dateInput.value =
-                getTodayDate();
-        }
-
-        updateSubcategories();
+        document.getElementById(
+            "expenseDate"
+        ).value =
+            getTodayDate();
     }
 
-    modal.classList.add("open");
+
+    modal.classList.add(
+        "show"
+    );
+
+
+    setTimeout(
+        () => {
+
+            document
+                .getElementById(
+                    "expenseDescription"
+                )
+                ?.focus();
+
+        },
+        100
+    );
 }
 
+
+/* =========================================================
+   FECHAR DESPESA
+========================================================= */
 
 function closeExpenseModal() {
 
@@ -738,31 +975,43 @@ function closeExpenseModal() {
         );
 
     if (modal) {
+
         modal.classList.remove(
-            "open"
+            "show"
         );
     }
 
-    editingExpenseId = null;
+    editingExpenseId =
+        null;
 }
 
 
-function saveExpense() {
+/* =========================================================
+   SALVAR DESPESA
+========================================================= */
+
+function saveExpense(event) {
+
+    event.preventDefault();
+
 
     const description =
         document.getElementById(
             "expenseDescription"
         ).value.trim();
 
+
     const category =
         document.getElementById(
             "expenseCategory"
         ).value;
 
+
     const subcategory =
         document.getElementById(
             "expenseSubcategory"
         ).value;
+
 
     const amount =
         parseMoney(
@@ -771,24 +1020,28 @@ function saveExpense() {
             ).value
         );
 
+
     const date =
         document.getElementById(
             "expenseDate"
         ).value;
+
 
     const notes =
         document.getElementById(
             "expenseNotes"
         ).value.trim();
 
+
     if (!description) {
 
         showToast(
-            "Informe a descrição da despesa."
+            "Digite a descrição da despesa."
         );
 
         return;
     }
+
 
     if (!category) {
 
@@ -799,23 +1052,36 @@ function saveExpense() {
         return;
     }
 
-    if (!amount || amount <= 0) {
+
+    if (!subcategory) {
 
         showToast(
-            "Informe um valor válido."
+            "Selecione uma subcategoria."
         );
 
         return;
     }
+
+
+    if (amount <= 0) {
+
+        showToast(
+            "Digite um valor válido."
+        );
+
+        return;
+    }
+
 
     if (!date) {
 
         showToast(
-            "Informe a data da despesa."
+            "Informe a data."
         );
 
         return;
     }
+
 
     if (editingExpenseId) {
 
@@ -825,6 +1091,7 @@ function saveExpense() {
                     item.id ===
                     editingExpenseId
             );
+
 
         if (index !== -1) {
 
@@ -838,16 +1105,19 @@ function saveExpense() {
                 amount,
                 date,
                 notes
+
             };
         }
 
+
         showToast(
-            "Despesa atualizada com sucesso."
+            "Despesa atualizada!"
         );
+
 
     } else {
 
-        appData.expenses.push({
+        appData.expenses.unshift({
 
             id:
                 Date.now().toString(),
@@ -857,23 +1127,34 @@ function saveExpense() {
             subcategory,
             amount,
             date,
-            notes
+            notes,
+
+            createdAt:
+                new Date()
+                    .toISOString()
+
         });
 
+
         showToast(
-            "Despesa adicionada com sucesso."
+            "Despesa adicionada!"
         );
     }
 
+
     saveData();
 
-    closeExpenseModal();
+    renderExpenses();
 
     updateDashboard();
-    renderExpenses();
-    renderCategories();
+
+    closeExpenseModal();
 }
 
+
+/* =========================================================
+   RENDER — DESPESAS
+========================================================= */
 
 function renderExpenses() {
 
@@ -882,74 +1163,92 @@ function renderExpenses() {
             "expensesTableBody"
         );
 
-    const emptyState =
+    const empty =
         document.getElementById(
             "expensesEmpty"
         );
 
-    if (!tbody) {
+
+    if (!tbody || !empty) {
         return;
     }
 
-    const search =
-        document.getElementById(
-            "expenseSearch"
-        )?.value
-        .toLowerCase()
-        .trim() || "";
 
-    const category =
+    const search =
+        (
+            document.getElementById(
+                "expenseSearch"
+            )?.value || ""
+        )
+            .toLowerCase()
+            .trim();
+
+
+    const categoryFilter =
         document.getElementById(
             "expenseCategoryFilter"
         )?.value || "";
 
-    const month =
+
+    const monthFilter =
         document.getElementById(
             "expenseMonthFilter"
         )?.value || "";
 
+
     let filtered =
         [...appData.expenses];
+
 
     if (search) {
 
         filtered =
-            filtered.filter(expense => {
+            filtered.filter(
+                expense => {
 
-                const text = [
-                    expense.description,
-                    expense.category,
-                    expense.subcategory,
-                    expense.notes
-                ]
-                    .join(" ")
-                    .toLowerCase();
+                    const text = [
 
-                return text.includes(search);
-            });
+                        expense.description,
+                        expense.category,
+                        expense.subcategory,
+                        expense.notes
+
+                    ]
+                        .join(" ")
+                        .toLowerCase();
+
+
+                    return text.includes(
+                        search
+                    );
+                }
+            );
     }
 
-    if (category) {
+
+    if (categoryFilter) {
 
         filtered =
             filtered.filter(
                 expense =>
                     expense.category ===
-                    category
+                    categoryFilter
             );
     }
 
-    if (month) {
+
+    if (monthFilter) {
 
         filtered =
             filtered.filter(
                 expense =>
                     expense.date &&
                     expense.date.startsWith(
-                        month
+                        monthFilter
                     )
             );
     }
+
 
     filtered.sort(
         (a, b) =>
@@ -957,117 +1256,140 @@ function renderExpenses() {
             new Date(a.date)
     );
 
-    tbody.innerHTML = "";
 
     if (!filtered.length) {
 
-        if (emptyState) {
-            emptyState.hidden = false;
-        }
+        tbody.innerHTML = "";
+
+        empty.style.display =
+            "block";
 
         return;
     }
 
-    if (emptyState) {
-        emptyState.hidden = true;
-    }
 
-    filtered.forEach(expense => {
+    empty.style.display =
+        "none";
 
-        const tr =
-            document.createElement(
-                "tr"
-            );
 
-        tr.innerHTML = `
-            <td>
-                <strong>
-                    ${escapeHTML(
-                        expense.description
-                    )}
-                </strong>
-            </td>
+    tbody.innerHTML =
+        filtered
+            .map(
+                expense => `
 
-            <td>
-                ${escapeHTML(
-                    expense.category || "-"
-                )}
-            </td>
+                    <tr>
 
-            <td>
-                ${escapeHTML(
-                    expense.subcategory || "-"
-                )}
-            </td>
+                        <td>
+                            <span class="table-date">
+                                ${formatDate(
+                                    expense.date
+                                )}
+                            </span>
+                        </td>
 
-            <td>
-                ${formatCurrency(
-                    expense.amount
-                )}
-            </td>
+                        <td>
+                            <strong>
+                                ${escapeHTML(
+                                    expense.description
+                                )}
+                            </strong>
+                        </td>
 
-            <td>
-                ${formatDate(
-                    expense.date
-                )}
-            </td>
+                        <td>
+                            <span class="category-badge">
+                                ${escapeHTML(
+                                    expense.category
+                                )}
+                            </span>
+                        </td>
 
-            <td>
-                <div class="table-actions">
+                        <td>
+                            ${escapeHTML(
+                                expense.subcategory
+                            )}
+                        </td>
 
-                    <button
-                        class="action-button"
-                        title="Editar"
-                        onclick="openExpenseModal('${expense.id}')">
-                        ✎
-                    </button>
+                        <td>
+                            <span class="amount">
+                                ${formatCurrency(
+                                    expense.amount
+                                )}
+                            </span>
+                        </td>
 
-                    <button
-                        class="action-button danger"
-                        title="Excluir"
-                        onclick="deleteExpense('${expense.id}')">
-                        ×
-                    </button>
+                        <td>
 
-                </div>
-            </td>
-        `;
+                            <div class="action-buttons">
 
-        tbody.appendChild(tr);
-    });
+                                <button
+                                    class="action-button"
+                                    title="Editar"
+                                    aria-label="Editar"
+                                    onclick="openExpenseModal('${expense.id}')">
+                                    ✏️
+                                </button>
+
+                                <button
+                                    class="action-button delete"
+                                    title="Excluir"
+                                    aria-label="Excluir"
+                                    onclick="deleteExpense('${expense.id}')">
+                                    🗑️
+                                </button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                `
+            )
+            .join("");
 }
 
+
+/* =========================================================
+   EXCLUIR DESPESA
+========================================================= */
 
 function deleteExpense(id) {
 
     const expense =
         appData.expenses.find(
-            item => item.id === id
+            item =>
+                item.id === id
         );
+
 
     if (!expense) {
         return;
     }
+
 
     const confirmed =
         confirm(
             `Deseja excluir a despesa "${expense.description}"?`
         );
 
+
     if (!confirmed) {
         return;
     }
 
+
     appData.expenses =
         appData.expenses.filter(
-            item => item.id !== id
+            item =>
+                item.id !== id
         );
+
 
     saveData();
 
-    updateDashboard();
     renderExpenses();
-    renderCategories();
+
+    updateDashboard();
 
     showToast(
         "Despesa excluída."
@@ -1076,7 +1398,7 @@ function deleteExpense(id) {
 
 
 /* =========================================================
-   COTAÇÕES
+   FORMULÁRIO — COTAÇÕES
 ========================================================= */
 
 function setupQuoteForm() {
@@ -1086,38 +1408,57 @@ function setupQuoteForm() {
             "quoteForm"
         );
 
-    const priceInput =
-        document.getElementById(
-            "quotePrice"
-        );
-
     if (!form) {
         return;
     }
 
-    if (priceInput) {
-
-        priceInput.addEventListener(
-            "input",
-            () => {
-                moneyMask(priceInput);
-            }
-        );
-    }
 
     form.addEventListener(
         "submit",
-        event => {
+        saveQuote
+    );
 
-            event.preventDefault();
 
-            saveQuote();
+    const category =
+        document.getElementById(
+            "quoteCategory"
+        );
+
+
+    category?.addEventListener(
+        "change",
+        () => {
+
+            updateQuoteSubcategories();
+
+        }
+    );
+
+
+    const price =
+        document.getElementById(
+            "quotePrice"
+        );
+
+
+    price?.addEventListener(
+        "input",
+        () => {
+
+            moneyMask(price);
+
         }
     );
 }
 
 
-function openQuoteModal(id = null) {
+/* =========================================================
+   ABRIR COTAÇÃO
+========================================================= */
+
+function openQuoteModal(
+    quoteId = null
+) {
 
     const modal =
         document.getElementById(
@@ -1129,95 +1470,122 @@ function openQuoteModal(id = null) {
             "quoteForm"
         );
 
-    const title =
-        document.getElementById(
-            "quoteModalTitle"
-        );
 
     if (!modal || !form) {
         return;
     }
 
-    editingQuoteId = id;
 
-    if (id) {
+    form.reset();
+
+    editingQuoteId =
+        quoteId;
+
+
+    const title =
+        document.getElementById(
+            "quoteModalTitle"
+        );
+
+
+    if (quoteId) {
 
         const quote =
             quotes.find(
-                item => item.id === id
+                item =>
+                    item.id ===
+                    quoteId
             );
+
 
         if (!quote) {
             return;
         }
 
-        if (title) {
-            title.textContent =
-                "Editar cotação";
-        }
+
+        title.textContent =
+            "Editar cotação";
+
 
         document.getElementById(
             "quoteProduct"
         ).value =
             quote.product || "";
 
+
         document.getElementById(
             "quoteCategory"
         ).value =
             quote.category || "";
 
-        updateQuoteSubcategories();
 
-        document.getElementById(
-            "quoteSubcategory"
-        ).value =
-            quote.subcategory || "";
+        updateQuoteSubcategories(
+            quote.subcategory
+        );
+
 
         document.getElementById(
             "quoteStore"
         ).value =
             quote.store || "";
 
+
         document.getElementById(
             "quotePrice"
         ).value =
-            formatCurrency(quote.price);
+            formatCurrency(
+                quote.price
+            );
+
 
         document.getElementById(
             "quoteDate"
         ).value =
             quote.date || "";
 
+
         document.getElementById(
             "quoteNotes"
         ).value =
             quote.notes || "";
 
+
     } else {
 
-        if (title) {
-            title.textContent =
-                "Nova cotação";
-        }
+        title.textContent =
+            "Nova cotação";
 
-        form.reset();
 
-        const dateInput =
-            document.getElementById(
-                "quoteDate"
-            );
-
-        if (dateInput) {
-            dateInput.value =
-                getTodayDate();
-        }
-
-        updateQuoteSubcategories();
+        document.getElementById(
+            "quoteDate"
+        ).value =
+            getTodayDate();
     }
 
-    modal.classList.add("open");
+
+    modal.classList.add(
+        "show"
+    );
+
+
+    setTimeout(
+        () => {
+
+            document
+                .getElementById(
+                    "quoteProduct"
+                )
+                ?.focus();
+
+        },
+        100
+    );
 }
 
+
+/* =========================================================
+   FECHAR COTAÇÃO
+========================================================= */
 
 function closeQuoteModal() {
 
@@ -1226,37 +1594,52 @@ function closeQuoteModal() {
             "quoteModal"
         );
 
+
     if (modal) {
+
         modal.classList.remove(
-            "open"
+            "show"
         );
     }
 
-    editingQuoteId = null;
+
+    editingQuoteId =
+        null;
 }
 
 
-function saveQuote() {
+/* =========================================================
+   SALVAR COTAÇÃO
+========================================================= */
+
+function saveQuote(event) {
+
+    event.preventDefault();
+
 
     const product =
         document.getElementById(
             "quoteProduct"
         ).value.trim();
 
+
     const category =
         document.getElementById(
             "quoteCategory"
         ).value;
+
 
     const subcategory =
         document.getElementById(
             "quoteSubcategory"
         ).value;
 
+
     const store =
         document.getElementById(
             "quoteStore"
         ).value.trim();
+
 
     const price =
         parseMoney(
@@ -1265,24 +1648,28 @@ function saveQuote() {
             ).value
         );
 
+
     const date =
         document.getElementById(
             "quoteDate"
         ).value;
+
 
     const notes =
         document.getElementById(
             "quoteNotes"
         ).value.trim();
 
+
     if (!product) {
 
         showToast(
-            "Informe o produto."
+            "Digite o nome do produto."
         );
 
         return;
     }
+
 
     if (!category) {
 
@@ -1293,32 +1680,46 @@ function saveQuote() {
         return;
     }
 
+
+    if (!subcategory) {
+
+        showToast(
+            "Selecione uma subcategoria."
+        );
+
+        return;
+    }
+
+
     if (!store) {
 
         showToast(
-            "Informe a loja."
+            "Digite o nome da loja."
         );
 
         return;
     }
 
-    if (!price || price <= 0) {
+
+    if (price <= 0) {
 
         showToast(
-            "Informe um preço válido."
+            "Digite um preço válido."
         );
 
         return;
     }
+
 
     if (!date) {
 
         showToast(
-            "Informe a data."
+            "Informe a data da cotação."
         );
 
         return;
     }
+
 
     if (editingQuoteId) {
 
@@ -1328,6 +1729,7 @@ function saveQuote() {
                     item.id ===
                     editingQuoteId
             );
+
 
         if (index !== -1) {
 
@@ -1342,16 +1744,19 @@ function saveQuote() {
                 price,
                 date,
                 notes
+
             };
         }
 
+
         showToast(
-            "Cotação atualizada com sucesso."
+            "Cotação atualizada!"
         );
+
 
     } else {
 
-        quotes.push({
+        quotes.unshift({
 
             id:
                 Date.now().toString(),
@@ -1362,22 +1767,34 @@ function saveQuote() {
             store,
             price,
             date,
-            notes
+            notes,
+
+            createdAt:
+                new Date()
+                    .toISOString()
+
         });
 
+
         showToast(
-            "Cotação adicionada com sucesso."
+            "Cotação adicionada!"
         );
     }
 
+
     saveQuotes();
 
-    closeQuoteModal();
+    renderQuotes();
 
     updateDashboard();
-    renderQuotes();
+
+    closeQuoteModal();
 }
 
+
+/* =========================================================
+   RENDER — COTAÇÕES
+========================================================= */
 
 function renderQuotes() {
 
@@ -1386,193 +1803,247 @@ function renderQuotes() {
             "quotesContainer"
         );
 
-    const emptyState =
+    const empty =
         document.getElementById(
             "quotesEmpty"
         );
 
-    if (!container) {
+
+    if (!container || !empty) {
         return;
     }
 
-    const search =
-        document.getElementById(
-            "quoteSearch"
-        )?.value
-        .toLowerCase()
-        .trim() || "";
 
-    const category =
+    const search =
+        (
+            document.getElementById(
+                "quoteSearch"
+            )?.value || ""
+        )
+            .toLowerCase()
+            .trim();
+
+
+    const categoryFilter =
         document.getElementById(
             "quoteCategoryFilter"
         )?.value || "";
 
+
     let filtered =
         [...quotes];
+
 
     if (search) {
 
         filtered =
-            filtered.filter(quote => {
+            filtered.filter(
+                quote => {
 
-                const text = [
-                    quote.product,
-                    quote.category,
-                    quote.subcategory,
-                    quote.store,
-                    quote.notes
-                ]
-                    .join(" ")
-                    .toLowerCase();
+                    const text = [
 
-                return text.includes(search);
-            });
+                        quote.product,
+                        quote.store,
+                        quote.category,
+                        quote.subcategory,
+                        quote.notes
+
+                    ]
+                        .join(" ")
+                        .toLowerCase();
+
+
+                    return text.includes(
+                        search
+                    );
+                }
+            );
     }
 
-    if (category) {
+
+    if (categoryFilter) {
 
         filtered =
             filtered.filter(
                 quote =>
                     quote.category ===
-                    category
+                    categoryFilter
             );
     }
 
-    /*
-     * Agrupa as cotações pelo produto.
-     */
-    const grouped =
-        {};
 
-    filtered.forEach(quote => {
+    if (!filtered.length) {
 
-        const key =
-            quote.product
-                .trim()
-                .toLowerCase();
+        container.innerHTML = "";
 
-        if (!grouped[key]) {
-            grouped[key] = [];
-        }
-
-        grouped[key].push(quote);
-    });
-
-    container.innerHTML = "";
-
-    const productGroups =
-        Object.values(grouped);
-
-    if (!productGroups.length) {
-
-        if (emptyState) {
-            emptyState.hidden = false;
-        }
+        empty.style.display =
+            "block";
 
         return;
     }
 
-    if (emptyState) {
-        emptyState.hidden = true;
-    }
 
-    productGroups.forEach(
-        productQuotes => {
+    empty.style.display =
+        "none";
 
-            /*
-             * Ordena do menor para o maior preço.
-             */
-            productQuotes.sort(
-                (a, b) =>
-                    Number(a.price) -
-                    Number(b.price)
+
+    /*
+     * Agrupa produto + categoria +
+     * subcategoria.
+     */
+    const grouped = {};
+
+
+    filtered.forEach(
+        quote => {
+
+            const key = [
+
+                String(
+                    quote.product || ""
+                )
+                    .trim()
+                    .toLowerCase(),
+
+                String(
+                    quote.category || ""
+                )
+                    .trim()
+                    .toLowerCase(),
+
+                String(
+                    quote.subcategory || ""
+                )
+                    .trim()
+                    .toLowerCase()
+
+            ].join("|");
+
+
+            if (!grouped[key]) {
+
+                grouped[key] = [];
+            }
+
+
+            grouped[key].push(
+                quote
             );
 
-            const cheapest =
-                productQuotes[0];
+        }
+    );
 
-            const mostExpensive =
-                productQuotes[
-                    productQuotes.length - 1
-                ];
 
-            const possibleSaving =
-                productQuotes.length > 1
-                    ? Number(
+    container.innerHTML = "";
+
+
+    Object.values(grouped)
+        .forEach(
+            productQuotes => {
+
+                /*
+                 * Menor preço primeiro.
+                 */
+                productQuotes.sort(
+                    (a, b) =>
+                        Number(
+                            a.price
+                        ) -
+                        Number(
+                            b.price
+                        )
+                );
+
+
+                const cheapest =
+                    productQuotes[0];
+
+
+                const mostExpensive =
+                    productQuotes[
+                        productQuotes.length - 1
+                    ];
+
+
+                const saving =
+                    Number(
                         mostExpensive.price
                     ) -
                     Number(
                         cheapest.price
-                    )
-                    : 0;
+                    );
 
-            const card =
-                document.createElement(
-                    "div"
-                );
 
-            card.className =
-                "quote-card";
+                const card =
+                    document.createElement(
+                        "div"
+                    );
 
-            card.innerHTML = `
 
-                <div class="quote-card-header">
+                card.className =
+                    "quote-card";
 
-                    <div>
 
-                        <h3>
-                            ${escapeHTML(
-                                cheapest.product
-                            )}
-                        </h3>
+                card.innerHTML = `
 
-                        <span>
-                            ${escapeHTML(
-                                cheapest.category || ""
-                            )}
-                            ${
-                                cheapest.subcategory
-                                    ? " • " +
-                                      escapeHTML(
-                                          cheapest.subcategory
-                                      )
-                                    : ""
-                            }
-                        </span>
+                    <div class="quote-card-header">
+
+                        <div>
+
+                            <h3>
+                                ${escapeHTML(
+                                    cheapest.product
+                                )}
+                            </h3>
+
+                            <span>
+                                ${escapeHTML(
+                                    cheapest.category
+                                )}
+                                •
+                                ${escapeHTML(
+                                    cheapest.subcategory
+                                )}
+                            </span>
+
+                        </div>
+
+
+                        ${
+                            saving > 0
+                                ? `
+                                    <div class="saving-badge">
+
+                                        Economia possível:
+                                        ${formatCurrency(
+                                            saving
+                                        )}
+
+                                    </div>
+                                  `
+                                : ""
+                        }
 
                     </div>
 
-                    ${
-                        possibleSaving > 0
-                            ? `
-                                <div class="quote-saving">
-                                    Economia possível:
-                                    <strong>
-                                        ${formatCurrency(
-                                            possibleSaving
-                                        )}
-                                    </strong>
-                                </div>
-                              `
-                            : ""
-                    }
 
-                </div>
+                    <div class="quote-prices">
 
-                <div class="quote-prices">
+                        ${productQuotes
+                            .map(
+                                (
+                                    quote,
+                                    index
+                                ) => `
 
-                    ${productQuotes
-                        .map(
-                            quote => {
-
-                                const isCheapest =
-                                    quote.id ===
-                                    cheapest.id;
-
-                                return `
-
-                                    <div class="quote-price-row">
+                                    <div class="
+                                        quote-price-row
+                                        ${
+                                            index === 0
+                                                ? "cheapest"
+                                                : ""
+                                        }
+                                    ">
 
                                         <div class="quote-store">
 
@@ -1582,31 +2053,40 @@ function renderQuotes() {
                                                 )}
                                             </strong>
 
-                                            <span>
+                                            <small>
                                                 ${formatDate(
                                                     quote.date
                                                 )}
-                                            </span>
+                                            </small>
 
                                         </div>
 
-                                        <div class="quote-price">
 
-                                            <strong
-                                                ${
-                                                    isCheapest
-                                                        ? 'class="cheapest-price"'
-                                                        : ""
-                                                }>
+                                        <div class="quote-value">
+
+                                            <strong>
                                                 ${formatCurrency(
                                                     quote.price
                                                 )}
                                             </strong>
 
+
+                                            ${
+                                                index === 0
+                                                    ? `
+                                                        <span class="winner-badge">
+                                                            🏆 Mais barato
+                                                        </span>
+                                                      `
+                                                    : ""
+                                            }
+
                                         </div>
 
-                                        <div class="quote-actions">
 
+                                        <div class="action-buttons">
+
+                                            <!-- MAIS DETALHES -->
                                             <button
                                                 class="action-button"
                                                 title="Mais detalhes"
@@ -1615,30 +2095,37 @@ function renderQuotes() {
                                                 ⓘ
                                             </button>
 
+
+                                            <!-- EDITAR -->
                                             <button
                                                 class="action-button"
                                                 title="Editar"
                                                 aria-label="Editar"
                                                 onclick="openQuoteModal('${quote.id}')">
-                                                ✎
+                                                ✏️
                                             </button>
 
+
+                                            <!-- EXCLUIR -->
                                             <button
-                                                class="action-button danger"
+                                                class="action-button delete"
                                                 title="Excluir"
                                                 aria-label="Excluir"
                                                 onclick="deleteQuote('${quote.id}')">
-                                                ×
+                                                🗑️
                                             </button>
 
                                         </div>
 
                                     </div>
 
+
+                                    <!-- DETALHES INDIVIDUAIS -->
                                     <div
                                         id="quote-details-${quote.id}"
                                         class="quote-details"
-                                        hidden>
+                                        hidden
+                                    >
 
                                         <strong>
                                             Observação
@@ -1646,7 +2133,8 @@ function renderQuotes() {
 
                                         <p>
                                             ${
-                                                quote.notes
+                                                quote.notes &&
+                                                quote.notes.trim()
                                                     ? escapeHTML(
                                                         quote.notes
                                                     )
@@ -1656,25 +2144,26 @@ function renderQuotes() {
 
                                     </div>
 
-                                `;
-                            }
-                        )
-                        .join("")}
+                                `
+                            )
+                            .join("")}
 
-                </div>
+                    </div>
 
-            `;
+                `;
 
-            container.appendChild(
-                card
-            );
-        }
-    );
+
+                container.appendChild(
+                    card
+                );
+
+            }
+        );
 }
 
 
 /* =========================================================
-   MAIS DETALHES DA COTAÇÃO
+   MAIS DETALHES — COTAÇÃO
 ========================================================= */
 
 function toggleQuoteDetails(id) {
@@ -1684,44 +2173,58 @@ function toggleQuoteDetails(id) {
             `quote-details-${id}`
         );
 
+
     if (!details) {
         return;
     }
+
 
     details.hidden =
         !details.hidden;
 }
 
 
+/* =========================================================
+   EXCLUIR COTAÇÃO
+========================================================= */
+
 function deleteQuote(id) {
 
     const quote =
         quotes.find(
-            item => item.id === id
+            item =>
+                item.id === id
         );
+
 
     if (!quote) {
         return;
     }
+
 
     const confirmed =
         confirm(
             `Deseja excluir a cotação de "${quote.product}" na loja "${quote.store}"?`
         );
 
+
     if (!confirmed) {
         return;
     }
 
+
     quotes =
         quotes.filter(
-            item => item.id !== id
+            item =>
+                item.id !== id
         );
+
 
     saveQuotes();
 
-    updateDashboard();
     renderQuotes();
+
+    updateDashboard();
 
     showToast(
         "Cotação excluída."
@@ -1729,50 +2232,90 @@ function deleteQuote(id) {
 }
 
 
+/* =========================================================
+   ECONOMIA POSSÍVEL
+========================================================= */
+
 function calculatePossibleSavings() {
 
-    if (quotes.length < 2) {
-        return 0;
-    }
+    const grouped = {};
 
-    const grouped =
-        {};
 
-    quotes.forEach(quote => {
+    quotes.forEach(
+        quote => {
 
-        const key =
-            quote.product
-                .trim()
-                .toLowerCase();
+            const key = [
 
-        if (!grouped[key]) {
-            grouped[key] = [];
+                String(
+                    quote.product || ""
+                )
+                    .trim()
+                    .toLowerCase(),
+
+                String(
+                    quote.category || ""
+                )
+                    .trim()
+                    .toLowerCase(),
+
+                String(
+                    quote.subcategory || ""
+                )
+                    .trim()
+                    .toLowerCase()
+
+            ].join("|");
+
+
+            if (!grouped[key]) {
+
+                grouped[key] = [];
+            }
+
+
+            grouped[key].push(
+                Number(
+                    quote.price
+                ) || 0
+            );
+
         }
+    );
 
-        grouped[key].push(
-            Number(quote.price) || 0
-        );
-    });
 
     let totalSaving = 0;
 
-    Object.values(grouped).forEach(
-        prices => {
 
-            if (prices.length < 2) {
-                return;
+    Object.values(grouped)
+        .forEach(
+            prices => {
+
+                if (
+                    prices.length < 2
+                ) {
+                    return;
+                }
+
+
+                const cheapest =
+                    Math.min(
+                        ...prices
+                    );
+
+
+                const mostExpensive =
+                    Math.max(
+                        ...prices
+                    );
+
+
+                totalSaving +=
+                    mostExpensive -
+                    cheapest;
+
             }
+        );
 
-            const min =
-                Math.min(...prices);
-
-            const max =
-                Math.max(...prices);
-
-            totalSaving +=
-                max - min;
-        }
-    );
 
     return totalSaving;
 }
@@ -1786,14 +2329,18 @@ function updateDashboard() {
 
     const totalExpenses =
         appData.expenses.reduce(
-            (total, expense) =>
-                total +
-                Number(expense.amount || 0),
+            (sum, expense) =>
+                sum +
+                Number(
+                    expense.amount || 0
+                ),
             0
         );
 
+
     const currentMonth =
         getCurrentMonth();
+
 
     const monthlyExpenses =
         appData.expenses
@@ -1805,68 +2352,82 @@ function updateDashboard() {
                     )
             )
             .reduce(
-                (total, expense) =>
-                    total +
+                (sum, expense) =>
+                    sum +
                     Number(
                         expense.amount || 0
                     ),
                 0
             );
 
-    const totalExpensesElement =
+
+    const totalElement =
         document.getElementById(
             "totalExpenses"
         );
 
-    const monthlyExpensesElement =
-        document.getElementById(
-            "monthlyExpenses"
-        );
 
-    const quoteCountElement =
-        document.getElementById(
-            "quoteCount"
-        );
+    if (totalElement) {
 
-    const possibleSavingElement =
-        document.getElementById(
-            "possibleSaving"
-        );
-
-    if (totalExpensesElement) {
-
-        totalExpensesElement.textContent =
+        totalElement.textContent =
             formatCurrency(
                 totalExpenses
             );
     }
 
-    if (monthlyExpensesElement) {
 
-        monthlyExpensesElement.textContent =
+    const monthlyElement =
+        document.getElementById(
+            "monthlyExpenses"
+        );
+
+
+    if (monthlyElement) {
+
+        monthlyElement.textContent =
             formatCurrency(
                 monthlyExpenses
             );
     }
 
-    if (quoteCountElement) {
 
-        quoteCountElement.textContent =
+    const quoteCount =
+        document.getElementById(
+            "quoteCount"
+        );
+
+
+    if (quoteCount) {
+
+        quoteCount.textContent =
             quotes.length;
     }
 
-    if (possibleSavingElement) {
 
-        possibleSavingElement.textContent =
+    const saving =
+        document.getElementById(
+            "possibleSaving"
+        );
+
+
+    if (saving) {
+
+        saving.textContent =
             formatCurrency(
                 calculatePossibleSavings()
             );
     }
 
+
     renderRecentExpenses();
+
     renderCategorySummary();
 }
 
+
+/* =========================================================
+   DASHBOARD — ÚLTIMAS DESPESAS
+========================================================= */
 
 function renderRecentExpenses() {
 
@@ -1875,9 +2436,11 @@ function renderRecentExpenses() {
             "recentExpenses"
         );
 
+
     if (!container) {
         return;
     }
+
 
     const recent =
         [...appData.expenses]
@@ -1888,61 +2451,77 @@ function renderRecentExpenses() {
             )
             .slice(0, 5);
 
-    container.innerHTML = "";
 
     if (!recent.length) {
 
         container.innerHTML = `
+
             <div class="empty-state">
-                Nenhuma despesa cadastrada.
+
+                <div class="empty-icon">
+                    💸
+                </div>
+
+                <strong>
+                    Nenhuma despesa ainda
+                </strong>
+
+                <p>
+                    Suas despesas recentes aparecerão aqui.
+                </p>
+
             </div>
+
         `;
 
         return;
     }
 
-    recent.forEach(expense => {
 
-        const item =
-            document.createElement(
-                "div"
-            );
+    container.innerHTML =
+        recent
+            .map(
+                expense => `
 
-        item.className =
-            "recent-expense";
+                    <div class="recent-item">
 
-        item.innerHTML = `
+                        <div class="recent-main">
 
-            <div>
+                            <strong>
+                                ${escapeHTML(
+                                    expense.description
+                                )}
+                            </strong>
 
-                <strong>
-                    ${escapeHTML(
-                        expense.description
-                    )}
-                </strong>
+                            <span>
+                                ${escapeHTML(
+                                    expense.category
+                                )}
+                                •
+                                ${formatDate(
+                                    expense.date
+                                )}
+                            </span>
 
-                <span>
-                    ${escapeHTML(
-                        expense.category || ""
-                    )}
-                </span>
+                        </div>
 
-            </div>
+                        <div class="recent-value">
+                            ${formatCurrency(
+                                expense.amount
+                            )}
+                        </div>
 
-            <strong>
-                ${formatCurrency(
-                    expense.amount
-                )}
-            </strong>
+                    </div>
 
-        `;
-
-        container.appendChild(
-            item
-        );
-    });
+                `
+            )
+            .join("");
 }
 
+
+/* =========================================================
+   DASHBOARD — CATEGORIAS
+========================================================= */
 
 function renderCategorySummary() {
 
@@ -1951,12 +2530,14 @@ function renderCategorySummary() {
             "categorySummary"
         );
 
+
     if (!container) {
         return;
     }
 
-    const totals =
-        {};
+
+    const totals = {};
+
 
     appData.expenses.forEach(
         expense => {
@@ -1965,158 +2546,170 @@ function renderCategorySummary() {
                 expense.category ||
                 "Outros";
 
+
             totals[category] =
-                (totals[category] || 0) +
+                (
+                    totals[category] ||
+                    0
+                ) +
                 Number(
                     expense.amount || 0
                 );
+
         }
     );
 
-    const entries =
-        Object.entries(totals)
-            .sort(
-                (a, b) =>
-                    b[1] - a[1]
-            );
 
-    container.innerHTML = "";
+    const entries =
+        Object.entries(
+            totals
+        )
+        .sort(
+            (a, b) =>
+                b[1] - a[1]
+        )
+        .slice(0, 6);
+
 
     if (!entries.length) {
 
         container.innerHTML = `
+
             <div class="empty-state">
-                Nenhuma despesa cadastrada.
+
+                <div class="empty-icon">
+                    📊
+                </div>
+
+                <strong>
+                    Sem dados ainda
+                </strong>
+
+                <p>
+                    Cadastre despesas para visualizar o resumo.
+                </p>
+
             </div>
+
         `;
 
         return;
     }
 
-    const total =
-        entries.reduce(
-            (sum, item) =>
-                sum + item[1],
-            0
-        );
 
-    entries.forEach(
-        ([category, amount]) => {
+    const maximum =
+        entries[0][1];
 
-            const percentage =
-                total > 0
-                    ? (
-                        amount /
-                        total *
-                        100
-                    )
-                    : 0;
 
-            const item =
-                document.createElement(
-                    "div"
-                );
+    container.innerHTML =
+        entries
+            .map(
+                ([category, total]) => {
 
-            item.className =
-                "category-summary-item";
+                    const percentage =
+                        maximum > 0
+                            ? (
+                                total /
+                                maximum
+                            ) * 100
+                            : 0;
 
-            item.innerHTML = `
 
-                <div class="category-summary-header">
+                    return `
 
-                    <strong>
-                        ${escapeHTML(
-                            category
-                        )}
-                    </strong>
+                        <div class="category-summary-item">
 
-                    <span>
-                        ${formatCurrency(
-                            amount
-                        )}
-                    </span>
+                            <div class="category-summary-header">
 
-                </div>
+                                <span>
+                                    ${escapeHTML(
+                                        category
+                                    )}
+                                </span>
 
-                <div class="category-progress">
+                                <strong>
+                                    ${formatCurrency(
+                                        total
+                                    )}
+                                </strong>
 
-                    <div
-                        class="category-progress-bar"
-                        style="width: ${percentage}%">
-                    </div>
+                            </div>
 
-                </div>
 
-            `;
+                            <div class="progress">
 
-            container.appendChild(
-                item
-            );
-        }
-    );
+                                <div
+                                    class="progress-bar"
+                                    style="width: ${percentage}%">
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    `;
+                }
+            )
+            .join("");
 }
 
 
 /* =========================================================
-   CATEGORIAS
+   CATEGORIAS — PÁGINA
 ========================================================= */
 
 function renderCategories() {
 
     const container =
         document.getElementById(
-            "categoriesGrid"
+            "categoriesContainer"
         );
+
 
     if (!container) {
         return;
     }
 
-    container.innerHTML = "";
 
-    Object.entries(categories).forEach(
-        ([category, subcategories]) => {
+    container.innerHTML =
+        Object.entries(
+            categories
+        )
+        .map(
+            ([category, subcategories]) => `
 
-            const card =
-                document.createElement(
-                    "div"
-                );
+                <div class="category-card">
 
-            card.className =
-                "category-card";
+                    <h3>
+                        ${escapeHTML(
+                            category
+                        )}
+                    </h3>
 
-            card.innerHTML = `
 
-                <h3>
-                    ${escapeHTML(
-                        category
-                    )}
-                </h3>
+                    <div class="subcategory-list">
 
-                <div class="subcategory-list">
+                        ${subcategories
+                            .map(
+                                subcategory => `
 
-                    ${subcategories
-                        .map(
-                            subcategory =>
+                                    <span class="subcategory">
+                                        ${escapeHTML(
+                                            subcategory
+                                        )}
+                                    </span>
+
                                 `
-                                <span>
-                                    ${escapeHTML(
-                                        subcategory
-                                    )}
-                                </span>
-                                `
-                        )
-                        .join("")}
+                            )
+                            .join("")}
+
+                    </div>
 
                 </div>
 
-            `;
-
-            container.appendChild(
-                card
-            );
-        }
-    );
+            `
+        )
+        .join("");
 }
 
 
@@ -2152,92 +2745,34 @@ function setupFilters() {
         );
 
 
-    if (expenseSearch) {
-
-        expenseSearch.addEventListener(
-            "input",
-            renderExpenses
-        );
-    }
+    expenseSearch?.addEventListener(
+        "input",
+        renderExpenses
+    );
 
 
-    if (expenseCategoryFilter) {
-
-        Object.keys(categories)
-            .forEach(category => {
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-                option.value =
-                    category;
-
-                option.textContent =
-                    category;
-
-                expenseCategoryFilter
-                    .appendChild(
-                        option
-                    );
-            });
-
-        expenseCategoryFilter
-            .addEventListener(
-                "change",
-                renderExpenses
-            );
-    }
+    expenseCategoryFilter?.addEventListener(
+        "change",
+        renderExpenses
+    );
 
 
-    if (expenseMonthFilter) {
-
-        expenseMonthFilter
-            .addEventListener(
-                "change",
-                renderExpenses
-            );
-    }
+    expenseMonthFilter?.addEventListener(
+        "change",
+        renderExpenses
+    );
 
 
-    if (quoteSearch) {
-
-        quoteSearch.addEventListener(
-            "input",
-            renderQuotes
-        );
-    }
+    quoteSearch?.addEventListener(
+        "input",
+        renderQuotes
+    );
 
 
-    if (quoteCategoryFilter) {
-
-        Object.keys(categories)
-            .forEach(category => {
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-                option.value =
-                    category;
-
-                option.textContent =
-                    category;
-
-                quoteCategoryFilter
-                    .appendChild(
-                        option
-                    );
-            });
-
-        quoteCategoryFilter
-            .addEventListener(
-                "change",
-                renderQuotes
-            );
-    }
+    quoteCategoryFilter?.addEventListener(
+        "change",
+        renderQuotes
+    );
 }
 
 
@@ -2245,25 +2780,68 @@ function setupFilters() {
    MODAIS
 ========================================================= */
 
-document.addEventListener(
-    "click",
-    event => {
+function setupModalEvents() {
 
-        if (
-            event.target.classList.contains(
-                "modal"
-            )
-        ) {
+    const expenseModal =
+        document.getElementById(
+            "expenseModal"
+        );
 
-            event.target.classList.remove(
-                "open"
-            );
+    const quoteModal =
+        document.getElementById(
+            "quoteModal"
+        );
 
-            editingExpenseId = null;
-            editingQuoteId = null;
+
+    expenseModal?.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                expenseModal
+            ) {
+
+                closeExpenseModal();
+            }
+
         }
-    }
-);
+    );
+
+
+    quoteModal?.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                quoteModal
+            ) {
+
+                closeQuoteModal();
+            }
+
+        }
+    );
+
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key ===
+                "Escape"
+            ) {
+
+                closeExpenseModal();
+
+                closeQuoteModal();
+            }
+
+        }
+    );
+}
 
 
 /* =========================================================
@@ -2278,6 +2856,7 @@ function moneyMask(input) {
             ""
         );
 
+
     if (!value) {
 
         input.value = "";
@@ -2285,11 +2864,13 @@ function moneyMask(input) {
         return;
     }
 
+
     const number =
         parseInt(
             value,
             10
         );
+
 
     input.value =
         new Intl.NumberFormat(
@@ -2304,37 +2885,57 @@ function moneyMask(input) {
 }
 
 
+/* =========================================================
+   CONVERTER DINHEIRO
+========================================================= */
+
 function parseMoney(value) {
 
     if (!value) {
         return 0;
     }
 
-    const normalized =
-        value
+
+    let text =
+        String(value)
             .replace(
                 /[^\d,.-]/g,
                 ""
-            )
-            .replace(
+            );
+
+
+    if (
+        text.includes(",")
+    ) {
+
+        text =
+            text.replace(
                 /\./g,
                 ""
-            )
-            .replace(
+            );
+
+
+        text =
+            text.replace(
                 ",",
                 "."
             );
+    }
 
-    const number =
-        parseFloat(
-            normalized
-        );
 
-    return Number.isFinite(number)
-        ? number
-        : 0;
+    const result =
+        parseFloat(text);
+
+
+    return isNaN(result)
+        ? 0
+        : result;
 }
 
+
+/* =========================================================
+   FORMATAR MOEDA
+========================================================= */
 
 function formatCurrency(value) {
 
@@ -2351,7 +2952,7 @@ function formatCurrency(value) {
 
 
 /* =========================================================
-   DATAS
+   DATA ATUAL
 ========================================================= */
 
 function getTodayDate() {
@@ -2359,8 +2960,10 @@ function getTodayDate() {
     const now =
         new Date();
 
+
     const year =
         now.getFullYear();
+
 
     const month =
         String(
@@ -2369,6 +2972,7 @@ function getTodayDate() {
             2,
             "0"
         );
+
 
     const day =
         String(
@@ -2378,17 +2982,24 @@ function getTodayDate() {
             "0"
         );
 
+
     return `${year}-${month}-${day}`;
 }
 
+
+/* =========================================================
+   MÊS ATUAL
+========================================================= */
 
 function getCurrentMonth() {
 
     const now =
         new Date();
 
+
     const year =
         now.getFullYear();
+
 
     const month =
         String(
@@ -2398,81 +3009,71 @@ function getCurrentMonth() {
             "0"
         );
 
+
     return `${year}-${month}`;
 }
 
 
-function formatDate(dateString) {
+/* =========================================================
+   FORMATAR DATA
+========================================================= */
+
+function formatDate(
+    dateString
+) {
 
     if (!dateString) {
         return "-";
     }
 
-    const parts =
-        dateString.split("-");
 
-    if (parts.length !== 3) {
+    const parts =
+        String(
+            dateString
+        ).split("-");
+
+
+    if (
+        parts.length === 3
+    ) {
+
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+
+    const date =
+        new Date(
+            dateString
+        );
+
+
+    if (
+        isNaN(
+            date.getTime()
+        )
+    ) {
+
         return dateString;
     }
 
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+
+    return date.toLocaleDateString(
+        "pt-BR"
+    );
 }
 
 
 /* =========================================================
-   TOAST
+   ESCAPAR HTML
 ========================================================= */
 
-function showToast(message) {
+function escapeHTML(
+    value
+) {
 
-    const toast =
-        document.getElementById(
-            "toast"
-        );
-
-    if (!toast) {
-        return;
-    }
-
-    toast.textContent =
-        message;
-
-    toast.classList.add(
-        "show"
-    );
-
-    clearTimeout(
-        showToast.timeout
-    );
-
-    showToast.timeout =
-        setTimeout(
-            () => {
-
-                toast.classList.remove(
-                    "show"
-                );
-
-            },
-            3000
-        );
-}
-
-
-/* =========================================================
-   SEGURANÇA / HTML
-========================================================= */
-
-function escapeHTML(value) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-        return "";
-    }
-
-    return String(value)
+    return String(
+        value ?? ""
+    )
         .replace(
             /&/g,
             "&amp;"
@@ -2492,5 +3093,57 @@ function escapeHTML(value) {
         .replace(
             /'/g,
             "&#039;"
+        );
+}
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+function showToast(
+    message
+) {
+
+    const toast =
+        document.getElementById(
+            "toast"
+        );
+
+    const toastMessage =
+        document.getElementById(
+            "toastMessage"
+        );
+
+
+    if (!toast || !toastMessage) {
+        return;
+    }
+
+
+    toastMessage.textContent =
+        message;
+
+
+    toast.classList.add(
+        "show"
+    );
+
+
+    clearTimeout(
+        toastTimeout
+    );
+
+
+    toastTimeout =
+        setTimeout(
+            () => {
+
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            2500
         );
 }
