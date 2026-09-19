@@ -205,25 +205,107 @@
 
                     </div>
 
-                    <button
-                        type="button"
-                        class="primary-button salary-button"
-                        onclick="saveSalary()"
-                    >
-                        Salvar saldo
-                    </button>
+                    <div class="salary-actions">
+
+                        <button
+                            type="button"
+                            class="primary-button salary-button"
+                            onclick="saveSalary()"
+                        >
+                            Salvar saldo
+                        </button>
+
+                        <button
+                            type="button"
+                            class="secondary-button salary-clear-button"
+                            onclick="clearSalary()"
+                        >
+                            Limpar saldo
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="budget-planner-controls">
+
+                    <div class="planner-control-copy">
+                        <span class="section-label">
+                            TETO DE GASTOS
+                        </span>
+
+                        <strong>
+                            Quanto você pretende gastar este mês?
+                        </strong>
+
+                        <p>
+                            O OrçaFácil calcula automaticamente uma meta conservadora para preservar parte do seu dinheiro. Você também pode escolher manualmente.
+                        </p>
+                    </div>
+
+                    <div class="planner-control-actions">
+
+                        <div class="planner-mode">
+                            <button
+                                type="button"
+                                class="planner-mode-button active"
+                                id="autoPlanButton"
+                                onclick="setBudgetMode('auto')"
+                            >
+                                Plano automático
+                            </button>
+
+                            <button
+                                type="button"
+                                class="planner-mode-button"
+                                id="manualPlanButton"
+                                onclick="setBudgetMode('manual')"
+                            >
+                                Manual
+                            </button>
+                        </div>
+
+                        <div class="planner-percentage-control">
+                            <label for="budgetPercentage">
+                                Percentual de gasto
+                            </label>
+
+                            <select
+                                id="budgetPercentage"
+                                onchange="setBudgetPercentage(this.value)"
+                                disabled
+                            >
+                                <option value="50">50% — preservar 50%</option>
+                                <option value="60">60% — preservar 40%</option>
+                                <option value="70" selected>70% — preservar 30%</option>
+                                <option value="80">80% — preservar 20%</option>
+                                <option value="90">90% — preservar 10%</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div class="planner-recommendation" id="plannerRecommendation">
+                        <span class="planner-recommendation-icon">✓</span>
+                        <div>
+                            <strong id="plannerRecommendationTitle">Plano recomendado</strong>
+                            <p id="plannerRecommendationText">
+                                Informe seu saldo para o OrçaFácil calcular o teto de gastos.
+                            </p>
+                        </div>
+                    </div>
 
                 </div>
 
                 <div class="planning-metrics">
 
                     <div class="planning-metric">
-                        <span>Teto mensal</span>
+                        <span>Teto de gastos</span>
                         <strong id="dashboardBudget">
                             R$ 0,00
                         </strong>
-                        <small>
-                            valor disponível informado
+                        <small id="dashboardBudgetLabel">
+                            limite definido para gastar
                         </small>
                     </div>
 
@@ -248,7 +330,7 @@
                     </div>
 
                     <div class="planning-metric highlight">
-                        <span>Saldo projetado</span>
+                        <span>Reserva projetada</span>
                         <strong id="dashboardProjected">
                             R$ 0,00
                         </strong>
