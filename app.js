@@ -1,26 +1,7 @@
 const STORAGE_KEY = "orcafacil_data_v2";
 const QUOTES_STORAGE_KEY = "orcafacil_quotes_v1";
 
-let appData = {
-    expenses: [],
-    budgets: [],
-    monthlyBalance: 0,
-    budgetMode: "auto",
-    budgetPercentage: 70
-};
-
-let quotes = [];
-
-let editingExpenseId = null;
-let editingQuoteId = null;
-
-
-/* =====================================================
-   CATEGORIAS
-===================================================== */
-
 const categories = {
-
     "Compras": [
         "Alimentos",
         "Higiene pessoal",
@@ -61,16 +42,14 @@ const categories = {
         "Água",
         "Internet",
         "Móveis",
-        "Eletrodomésticos",
         "Manutenção",
         "Outros"
     ],
 
     "Transporte": [
         "Combustível",
-        "Uber",
-        "99",
         "Transporte público",
+        "Aplicativos",
         "Manutenção",
         "Estacionamento",
         "Outros"
@@ -79,151 +58,178 @@ const categories = {
     "Saúde": [
         "Consultas",
         "Exames",
-        "Medicamentos",
+        "Farmácia",
         "Plano de saúde",
-        "Dentista",
         "Outros"
     ],
 
     "Educação": [
         "Cursos",
         "Livros",
-        "Faculdade",
-        "Material escolar",
+        "Material",
+        "Mensalidade",
         "Outros"
     ],
 
     "Lazer": [
-        "Cinema",
         "Restaurantes",
-        "Viagens",
+        "Passeios",
         "Jogos",
-        "Eventos",
+        "Viagens",
         "Outros"
     ],
 
     "Serviços": [
+        "Assinaturas",
         "Manutenção",
         "Profissionais",
-        "Assinaturas",
-        "Serviços digitais",
         "Outros"
     ],
 
     "Outros": [
-        "Outros"
+        "Diversos"
     ]
 };
 
+let appData = {
+    expenses: [],
+    budgets: [],
+    monthlyBalance: 0,
+    budgetMode: "auto",
+    budgetPercentage: 70
+};
 
-/* =====================================================
-   INICIALIZAÇÃO
-===================================================== */
+let quotes = [];
 
-document.addEventListener(
-    "DOMContentLoaded",
-    init
-);
+let toastTimer;
+
+const $ = id => document.getElementById(id);
+
+const money = value =>
+    Number(value || 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+    });
+
+const today = () =>
+    new Date().toISOString().slice(0, 10);
+
+const monthNow = () =>
+    new Date().toISOString().slice(0, 7);
+
+const uid = () =>
+    `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 
-function init() {
+/* =========================================================
+   UTILITÁRIOS
+========================================================= */
 
-    loadData();
-
-    loadQuotes();
-
-    loadTheme();
-
-    setupNavigation();
-
-    setupMobileMenu();
-
-    populateCategorySelects();
-
-    populateQuoteCategorySelect();
-
-    setupExpenseForm();
-
-    setupQuoteForm();
-
-    setupFilters();
-
-    setupBudgetControl();
-
-    setupBudgetPlanner();
-
-    setupModalEvents();
-
-    renderCategories();
-
-    renderExpenses();
-
-    renderQuotes();
-
-    updateDashboard();
+function escapeHTML(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
 
 
-/* =====================================================
-   STORAGE — DESPESAS
-===================================================== */
+function parseMoney(value) {
+    const digits = String(value || "").replace(/\D/g, "");
+
+    return digits
+        ? Number(digits) / 100
+        : 0;
+}
+
+
+function maskMoneyInput(input) {
+    const value = String(input.value || "")
+        .replace(/\D/g, "");
+
+    input.value = value
+        ? money(Number(value) / 100)
+        : "";
+}
+
+
+function fillMoneyInput(input, value) {
+    input.value =
+        Number(value || 0) > 0
+            ? money(value)
+            : "";
+}
+
+
+function formatDate(value) {
+    if (!value) {
+        return "-";
+    }
+
+    const parts = String(value).split("-");
+
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    return value;
+}
+
+
+/* =========================================================
+   LOCAL STORAGE
+========================================================= */
+
+function saveData() {
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(appData)
+    );
+}
+
+
+function saveQuotes() {
+    localStorage.setItem(
+        QUOTES_STORAGE_KEY,
+        JSON.stringify(quotes)
+    );
+}
+
 
 function loadData() {
-
     try {
-
-        const saved =
-            localStorage.getItem(
-                STORAGE_KEY
-            );
-
-        if (!saved) {
-            return;
-        }
-
-        const parsed =
-            JSON.parse(saved);
+        const data = JSON.parse(
+            localStorage.getItem(STORAGE_KEY) || "{}"
+        );
 
         appData = {
+            expenses: Array.isArray(data.expenses)
+                ? data.expenses
+                : [],
 
-            expenses:
-                Array.isArray(
-                    parsed.expenses
-                )
-                    ? parsed.expenses
-                    : [],
+            budgets: Array.isArray(data.budgets)
+                ? data.budgets
+                : [],
 
-            budgets:
-                Array.isArray(
-                    parsed.budgets
-                )
-                    ? parsed.budgets
-                    : [],
-
-            monthlyBalance:
-                Number(
-                    parsed.monthlyBalance || 0
-                ),
+            monthlyBalance: Number(
+                data.monthlyBalance || 0
+            ),
 
             budgetMode:
-                parsed.budgetMode === "manual"
+                data.budgetMode === "manual"
                     ? "manual"
                     : "auto",
 
             budgetPercentage:
-                normalizeBudgetPercentage(
-                    parsed.budgetPercentage || 70
+                [50, 60, 70, 80, 90].includes(
+                    Number(data.budgetPercentage)
                 )
-
+                    ? Number(data.budgetPercentage)
+                    : 70
         };
 
-    } catch (error) {
-
-        console.error(
-            "Erro ao carregar dados:",
-            error
-        );
-
+    } catch {
         appData = {
             expenses: [],
             budgets: [],
@@ -235,180 +241,82 @@ function loadData() {
 }
 
 
-function saveData() {
-
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(appData)
-    );
-}
-
-
-/* =====================================================
-   STORAGE — COTAÇÕES
-===================================================== */
-
 function loadQuotes() {
-
     try {
-
-        const saved =
-            localStorage.getItem(
-                QUOTES_STORAGE_KEY
-            );
-
-        if (!saved) {
-            return;
-        }
-
-        const parsed =
-            JSON.parse(saved);
-
-        quotes =
-            Array.isArray(parsed)
-                ? parsed
-                : [];
-
-    } catch (error) {
-
-        console.error(
-            "Erro ao carregar cotações:",
-            error
+        const data = JSON.parse(
+            localStorage.getItem(QUOTES_STORAGE_KEY) || "[]"
         );
 
+        quotes = Array.isArray(data)
+            ? data
+            : [];
+
+    } catch {
         quotes = [];
     }
 }
 
 
-function saveQuotes() {
+/* =========================================================
+   NAVEGAÇÃO
+========================================================= */
 
-    localStorage.setItem(
-        QUOTES_STORAGE_KEY,
-        JSON.stringify(quotes)
+function showPage(page) {
+
+    document
+        .querySelectorAll(".page")
+        .forEach(section => {
+            section.classList.toggle(
+                "active",
+                section.id === page
+            );
+        });
+
+    document
+        .querySelectorAll(".menu-item")
+        .forEach(button => {
+            button.classList.toggle(
+                "active",
+                button.dataset.page === page
+            );
+        });
+
+    const names = {
+        dashboard: "Visão geral",
+        despesas: "Despesas",
+        cotacoes: "Cotações",
+        categorias: "Categorias"
+    };
+
+    $("topbarSection").textContent =
+        names[page] || "OrçaFácil";
+
+    $("sidebar").classList.remove(
+        "mobile-open"
     );
 }
 
 
-/* =====================================================
-   NAVEGAÇÃO
-===================================================== */
-
-function setupNavigation() {
-
-    document
-        .querySelectorAll(".menu-item")
-        .forEach(item => {
-
-            item.addEventListener(
-                "click",
-                () => {
-
-                    showPage(
-                        item.dataset.page
-                    );
-
-                }
-            );
-
-        });
-}
-
-
-function showPage(pageId) {
-
-    document
-        .querySelectorAll(".page")
-        .forEach(page => {
-
-            page.classList.remove(
-                "active"
-            );
-
-        });
-
-
-    const page =
-        document.getElementById(
-            pageId
-        );
-
-
-    if (page) {
-
-        page.classList.add(
-            "active"
-        );
-    }
-
-
-    document
-        .querySelectorAll(".menu-item")
-        .forEach(item => {
-
-            item.classList.toggle(
-                "active",
-                item.dataset.page ===
-                    pageId
-            );
-
-        });
-
-
-    const sidebar =
-        document.querySelector(
-            ".sidebar"
-        );
-
-
-    if (sidebar) {
-
-        sidebar.classList.remove(
-            "mobile-open"
-        );
-    }
-}
-
-
-/* =====================================================
+/* =========================================================
    MENU MOBILE
-===================================================== */
+========================================================= */
 
-function setupMobileMenu() {
+function setupMobile() {
 
-    const button =
-        document.getElementById(
-            "mobileMenuButton"
-        );
-
-
-    const sidebar =
-        document.querySelector(
-            ".sidebar"
-        );
-
-
-    if (!button || !sidebar) {
-        return;
-    }
-
-
-    button.addEventListener(
+    $("mobileMenuButton").addEventListener(
         "click",
         () => {
-
-            sidebar.classList.toggle(
+            $("sidebar").classList.toggle(
                 "mobile-open"
             );
-
         }
     );
 }
 
 
-/* =====================================================
+/* =========================================================
    TEMA
-===================================================== */
+========================================================= */
 
 function loadTheme() {
 
@@ -417,12 +325,10 @@ function loadTheme() {
             "orcafacil_theme"
         ) === "dark";
 
-
     document.body.classList.toggle(
         "dark",
         dark
     );
-
 
     updateThemeButton();
 }
@@ -430,25 +336,22 @@ function loadTheme() {
 
 function toggleTheme() {
 
-    const isDark =
+    const dark =
         !document.body.classList.contains(
             "dark"
         );
 
-
     document.body.classList.toggle(
         "dark",
-        isDark
+        dark
     );
-
 
     localStorage.setItem(
         "orcafacil_theme",
-        isDark
+        dark
             ? "dark"
             : "light"
     );
-
 
     updateThemeButton();
 }
@@ -461,663 +364,837 @@ function updateThemeButton() {
             "dark"
         );
 
+    $("themeIcon").textContent =
+        dark ? "☀️" : "🌙";
 
-    const icon =
-        document.getElementById(
-            "themeIcon"
-        );
-
-
-    const text =
-        document.getElementById(
-            "themeText"
-        );
-
-
-    if (icon) {
-
-        icon.textContent =
-            dark
-                ? "☀️"
-                : "🌙";
-    }
-
-
-    if (text) {
-
-        text.textContent =
-            dark
-                ? "Modo claro"
-                : "Modo escuro";
-    }
+    $("themeText").textContent =
+        dark
+            ? "Modo claro"
+            : "Modo escuro";
 }
 
 
-document.addEventListener(
-    "click",
-    event => {
-
-        if (
-            event.target.closest(
-                "#themeToggle"
-            )
-        ) {
-
-            toggleTheme();
-        }
-
-    }
-);
-
-
-/* =====================================================
-   SELECTS
-===================================================== */
+/* =========================================================
+   CATEGORIAS
+========================================================= */
 
 function populateSelect(
     select,
     values,
-    firstLabel
+    label = "Selecione"
 ) {
 
-    if (!select) {
-        return;
-    }
-
-
     select.innerHTML =
-        `<option value="">
-            ${firstLabel}
-        </option>`;
+        `<option value="">${label}</option>` +
+        values
+            .map(
+                value =>
+                    `<option value="${escapeHTML(value)}">${escapeHTML(value)}</option>`
+            )
+            .join("");
+}
 
 
-    values.forEach(value => {
+function setupCategorySelects() {
 
-        const option =
-            document.createElement(
-                "option"
+    const names =
+        Object.keys(categories);
+
+    populateSelect(
+        $("expenseCategory"),
+        names
+    );
+
+    populateSelect(
+        $("quoteCategory"),
+        names
+    );
+
+    populateSelect(
+        $("expenseCategoryFilter"),
+        names,
+        "Todas as categorias"
+    );
+
+    populateSelect(
+        $("quoteCategoryFilter"),
+        names,
+        "Todas as categorias"
+    );
+
+    updateSubcategories(
+        "expenseCategory",
+        "expenseSubcategory"
+    );
+
+    updateSubcategories(
+        "quoteCategory",
+        "quoteSubcategory"
+    );
+
+    $("expenseCategory").addEventListener(
+        "change",
+        () => {
+            updateSubcategories(
+                "expenseCategory",
+                "expenseSubcategory"
             );
+        }
+    );
+
+    $("quoteCategory").addEventListener(
+        "change",
+        () => {
+            updateSubcategories(
+                "quoteCategory",
+                "quoteSubcategory"
+            );
+        }
+    );
+}
 
 
-        option.value =
-            value;
+function updateSubcategories(
+    categoryId,
+    subId,
+    selected = ""
+) {
+
+    const category =
+        $(categoryId).value;
+
+    const select =
+        $(subId);
+
+    const values =
+        categories[category] || [];
+
+    populateSelect(
+        select,
+        values,
+        category
+            ? "Selecione"
+            : "Selecione primeiro a categoria"
+    );
+
+    if (selected) {
+        select.value = selected;
+    }
+}
 
 
-        option.textContent =
-            value;
+/* =========================================================
+   MÁSCARA DE DINHEIRO
+========================================================= */
 
+function setupMoneyMasks() {
 
-        select.appendChild(
-            option
+    [
+        "salaryInput",
+        "expenseAmount",
+        "quotePrice"
+    ].forEach(id => {
+
+        const input = $(id);
+
+        input.addEventListener(
+            "input",
+            () => maskMoneyInput(input)
         );
-
     });
 }
 
 
-function populateCategorySelects() {
+/* =========================================================
+   SALDO
+========================================================= */
 
-    const values =
-        Object.keys(
-            categories
+function saveSalary() {
+
+    const value =
+        parseMoney(
+            $("salaryInput").value
         );
 
+    appData.monthlyBalance = value;
 
-    populateSelect(
-        document.getElementById(
-            "expenseCategory"
-        ),
-        values,
-        "Selecione"
-    );
+    saveData();
 
+    updateDashboard();
 
-    populateSelect(
-        document.getElementById(
-            "expenseCategoryFilter"
-        ),
-        values,
-        "Todas as categorias"
+    showToast(
+        value
+            ? `Saldo salvo: ${money(value)}`
+            : "Saldo zerado."
     );
 }
 
 
-function populateQuoteCategorySelect() {
-
-    const values =
-        Object.keys(
-            categories
-        );
-
-
-    populateSelect(
-        document.getElementById(
-            "quoteCategory"
-        ),
-        values,
-        "Selecione"
-    );
-
-
-    populateSelect(
-        document.getElementById(
-            "quoteCategoryFilter"
-        ),
-        values,
-        "Todas as categorias"
-    );
-}
-
-
-/* =====================================================
-   SUBCATEGORIAS
-===================================================== */
-
-function updateSubcategories(
-    selectedValue = ""
-) {
-
-    const category =
-        document.getElementById(
-            "expenseCategory"
-        )?.value;
-
-
-    const select =
-        document.getElementById(
-            "expenseSubcategory"
-        );
-
-
-    if (!select) {
-        return;
-    }
-
-
-    const values =
-        categories[
-            category
-        ] || [];
-
-
-    populateSelect(
-        select,
-        values,
-        "Selecione"
-    );
-
+function clearSalary() {
 
     if (
-        selectedValue &&
-        values.includes(
-            selectedValue
+        !appData.monthlyBalance &&
+        !$("salaryInput").value
+    ) {
+        return;
+    }
+
+    appData.monthlyBalance = 0;
+
+    $("salaryInput").value = "";
+
+    saveData();
+
+    updateDashboard();
+
+    showToast("Saldo limpo.");
+}
+
+
+/* =========================================================
+   PLANEJAMENTO
+========================================================= */
+
+function setBudgetMode(mode) {
+
+    appData.budgetMode =
+        mode === "manual"
+            ? "manual"
+            : "auto";
+
+    saveData();
+
+    updateDashboard();
+}
+
+
+function setBudgetPercentage(value) {
+
+    const percentage =
+        Number(value);
+
+    appData.budgetPercentage =
+        [50, 60, 70, 80, 90].includes(
+            percentage
         )
+            ? percentage
+            : 70;
+
+    appData.budgetMode =
+        "manual";
+
+    saveData();
+
+    updateDashboard();
+}
+
+
+function getMonthlyExpenses() {
+
+    return appData.expenses
+        .filter(expense =>
+            String(
+                expense.date || ""
+            ).startsWith(
+                monthNow()
+            )
+        )
+        .reduce(
+            (sum, expense) =>
+                sum +
+                Number(
+                    expense.amount || 0
+                ),
+            0
+        );
+}
+
+
+function getMonthlyQuotes() {
+
+    return quotes.filter(quote =>
+        String(
+            quote.date || ""
+        ).startsWith(
+            monthNow()
+        )
+    );
+}
+
+
+function groupQuotes(list) {
+
+    const map = new Map();
+
+    list.forEach(quote => {
+
+        const key =
+            String(
+                quote.product || ""
+            )
+                .trim()
+                .toLowerCase();
+
+        if (!map.has(key)) {
+            map.set(key, []);
+        }
+
+        map.get(key).push(quote);
+    });
+
+    return [...map.values()]
+        .map(group =>
+            group.sort(
+                (a, b) =>
+                    Number(a.price) -
+                    Number(b.price)
+            )
+        );
+}
+
+
+function getPlannedTotal() {
+
+    return groupQuotes(
+        getMonthlyQuotes()
+    ).reduce(
+        (sum, group) =>
+            sum +
+            Number(
+                group[0]?.price || 0
+            ),
+        0
+    );
+}
+
+
+function recommendedPercentage() {
+
+    const balance =
+        appData.monthlyBalance;
+
+    if (balance <= 0) {
+        return 70;
+    }
+
+    const ratio =
+        (
+            getMonthlyExpenses() +
+            getPlannedTotal()
+        ) / balance;
+
+    if (ratio <= 0.4) {
+        return 70;
+    }
+
+    if (ratio <= 0.55) {
+        return 60;
+    }
+
+    return 50;
+}
+
+
+function activePercentage() {
+
+    return appData.budgetMode === "manual"
+        ? appData.budgetPercentage
+        : recommendedPercentage();
+}
+
+
+function budgetPlan() {
+
+    const balance =
+        appData.monthlyBalance;
+
+    const percentage =
+        activePercentage();
+
+    const ceiling =
+        balance *
+        percentage /
+        100;
+
+    const reserve =
+        Math.max(
+            0,
+            balance - ceiling
+        );
+
+    const spent =
+        getMonthlyExpenses();
+
+    const planned =
+        getPlannedTotal();
+
+    return {
+        balance,
+        percentage,
+        ceiling,
+        reserve,
+        spent,
+        planned,
+        committed:
+            spent + planned,
+        remaining:
+            ceiling -
+            spent -
+            planned,
+        projected:
+            balance -
+            spent -
+            planned
+    };
+}
+
+
+/* =========================================================
+   ATUALIZAÇÃO DO ORÇAMENTO
+========================================================= */
+
+function updateBudgetUI() {
+
+    const plan =
+        budgetPlan();
+
+    $("budgetPercentage").value =
+        String(plan.percentage);
+
+    $("budgetPercentage").disabled =
+        appData.budgetMode !== "manual";
+
+    $("autoPlanButton").classList.toggle(
+        "active",
+        appData.budgetMode === "auto"
+    );
+
+    $("manualPlanButton").classList.toggle(
+        "active",
+        appData.budgetMode === "manual"
+    );
+
+
+    $("dashboardBudget").textContent =
+        money(plan.ceiling);
+
+    $("dashboardBudgetLabel").textContent =
+        plan.balance
+            ? `${plan.percentage}% do saldo • ${money(plan.reserve)} preservados`
+            : "limite definido para gastar";
+
+
+    $("dashboardSpent").textContent =
+        money(plan.spent);
+
+    $("dashboardPlanned").textContent =
+        money(plan.planned);
+
+    $("dashboardProjected").textContent =
+        money(plan.projected);
+
+    $("dashboardProjected").classList.toggle(
+        "danger-value",
+        plan.projected < 0
+    );
+
+    $("dashboardProjectedLabel").textContent =
+        plan.balance
+            ? "após despesas e compras planejadas"
+            : "informe seu saldo para começar";
+
+
+    if (plan.balance <= 0) {
+
+        $("plannerRecommendationTitle").textContent =
+            "Plano aguardando seu saldo";
+
+        $("plannerRecommendationText").textContent =
+            "Informe seu saldo disponível para calcular o teto de gastos e a reserva protegida.";
+
+    } else if (
+        appData.budgetMode === "manual"
     ) {
 
-        select.value =
-            selectedValue;
+        $("plannerRecommendationTitle").textContent =
+            `Plano manual: ${plan.percentage}% para gastos`;
+
+        $("plannerRecommendationText").textContent =
+            `Seu teto de gastos é ${money(plan.ceiling)} e a reserva protegida fica em ${money(plan.reserve)}.`;
+
+    } else {
+
+        $("plannerRecommendationTitle").textContent =
+            `Plano automático: ${plan.percentage}% para gastos`;
+
+        $("plannerRecommendationText").textContent =
+            `O OrçaFácil sugere limitar os gastos a ${money(plan.ceiling)} e preservar ${money(plan.reserve)} como reserva.`;
     }
+
+
+    let state = {
+        className: "neutral",
+        badge: "Aguardando",
+        title: "Cadastre seu saldo",
+        description:
+            "Informe quanto você tem disponível para que o OrçaFácil calcule seu orçamento.",
+        icon: "R$"
+    };
+
+
+    if (plan.balance > 0) {
+
+        if (plan.projected < 0) {
+
+            state = {
+                className: "danger",
+                badge: "Risco de perda",
+                title:
+                    "O planejamento ultrapassou seu saldo",
+                description:
+                    `Despesas e compras planejadas ultrapassam seu saldo em ${money(Math.abs(plan.projected))}.`,
+                icon: "!"
+            };
+
+        } else if (plan.remaining < 0) {
+
+            state = {
+                className: "warning",
+                badge: "Cuidado",
+                title:
+                    "Você ultrapassou o teto de gastos",
+                description:
+                    `O limite de ${money(plan.ceiling)} foi ultrapassado em ${money(Math.abs(plan.remaining))}.`,
+                icon: "!"
+            };
+
+        } else if (
+            plan.remaining <=
+            plan.ceiling * 0.1
+        ) {
+
+            state = {
+                className: "warning",
+                badge: "Cuidado",
+                title:
+                    "Você está perto do teto de gastos",
+                description:
+                    `Ainda restam ${money(Math.max(0, plan.remaining))} dentro do teto de ${money(plan.ceiling)}.`,
+                icon: "!"
+            };
+
+        } else {
+
+            state = {
+                className: "good",
+                badge: "Pode comprar",
+                title:
+                    "Seu planejamento está dentro do teto",
+                description:
+                    `Restam ${money(Math.max(0, plan.remaining))} para gastar sem mexer na reserva protegida de ${money(plan.reserve)}.`,
+                icon: "✓"
+            };
+        }
+    }
+
+
+    const percent =
+        plan.ceiling > 0
+            ? Math.max(
+                0,
+                Math.min(
+                    100,
+                    (
+                        plan.committed /
+                        plan.ceiling
+                    ) * 100
+                )
+            )
+            : 0;
+
+
+    $("budgetProgress").style.width =
+        `${percent}%`;
+
+    $("budgetProgress").className =
+        `progress-bar ${state.className}`;
+
+
+    $("budgetProgressLabel").textContent =
+        plan.balance
+            ? `${money(plan.committed)} comprometidos de ${money(plan.ceiling)} do teto`
+            : "Nenhum valor definido";
+
+    $("budgetProgressPercent").textContent =
+        `${Math.round(percent)}%`;
+
+
+    $("budgetStatusText").textContent =
+        state.title;
+
+    $("budgetStatusBadge").className =
+        `budget-status-badge ${state.className}`;
+
+    $("budgetStatusBadge").textContent =
+        state.badge;
+
+
+    $("purchaseStatusTitle").textContent =
+        state.title;
+
+    $("purchaseStatusDescription").textContent =
+        state.description;
+
+    $("purchaseStatusIcon").textContent =
+        state.icon;
+
+    $("purchaseStatusIcon").className =
+        `purchase-status-icon ${state.className}`;
 }
 
 
-function updateQuoteSubcategories(
-    selectedValue = ""
-) {
+/* =========================================================
+   MODAIS
+========================================================= */
 
-    const category =
-        document.getElementById(
-            "quoteCategory"
-        )?.value;
+function openModal(id) {
 
+    $(id).hidden = false;
 
-    const select =
-        document.getElementById(
-            "quoteSubcategory"
-        );
-
-
-    if (!select) {
-        return;
-    }
-
-
-    const values =
-        categories[
-            category
-        ] || [];
-
-
-    populateSelect(
-        select,
-        values,
-        "Selecione"
-    );
-
-
-    if (
-        selectedValue &&
-        values.includes(
-            selectedValue
-        )
-    ) {
-
-        select.value =
-            selectedValue;
-    }
-}
-
-
-/* =====================================================
-   FORMULÁRIO DE DESPESAS
-===================================================== */
-
-function setupExpenseForm() {
-
-    const form =
-        document.getElementById(
-            "expenseForm"
-        );
-
-
-    if (!form) {
-        return;
-    }
-
-
-    document
-        .getElementById(
-            "expenseCategory"
-        )
-        ?.addEventListener(
-            "change",
-            () => updateSubcategories()
-        );
-
-
-    const amount =
-        document.getElementById(
-            "expenseAmount"
-        );
-
-
-    amount?.addEventListener(
-        "input",
-        () => moneyMask(amount)
-    );
-
-
-    form.addEventListener(
-        "submit",
-        event => {
-
-            event.preventDefault();
-
-            saveExpense();
-        }
+    document.body.classList.add(
+        "modal-open"
     );
 }
 
 
-function openExpenseModal(
-    expenseId = null
-) {
+function closeModal(id) {
 
-    const modal =
-        document.getElementById(
-            "expenseModal"
-        );
+    const modal = $(id);
 
-
-    const form =
-        document.getElementById(
-            "expenseForm"
-        );
-
-
-    if (!modal || !form) {
+    if (!modal) {
         return;
     }
 
+    modal.hidden = true;
 
-    editingExpenseId =
-        expenseId;
-
-
-    form.reset();
-
-
-    const title =
-        document.getElementById(
-            "expenseModalTitle"
-        );
+    document.body.classList.remove(
+        "modal-open"
+    );
+}
 
 
-    const hiddenId =
-        document.getElementById(
-            "expenseId"
-        );
+function openExpenseModal(expense = null) {
+
+    $("expenseForm").reset();
+
+    $("expenseId").value = "";
+
+    $("expenseModalTitle").textContent =
+        expense
+            ? "Editar despesa"
+            : "Nova despesa";
+
+    $("expenseDate").value =
+        expense?.date ||
+        today();
 
 
-    if (expenseId) {
+    if (expense) {
 
-        const expense =
-            appData.expenses.find(
-                item =>
-                    item.id ===
-                    expenseId
-            );
+        $("expenseId").value =
+            expense.id;
 
+        $("expenseDescription").value =
+            expense.description;
 
-        if (!expense) {
-            return;
-        }
-
-
-        if (title) {
-            title.textContent =
-                "Editar despesa";
-        }
-
-
-        if (hiddenId) {
-            hiddenId.value =
-                expense.id;
-        }
-
-
-        document.getElementById(
-            "expenseDescription"
-        ).value =
-            expense.description || "";
-
-
-        document.getElementById(
-            "expenseCategory"
-        ).value =
-            expense.category || "";
-
+        $("expenseCategory").value =
+            expense.category;
 
         updateSubcategories(
+            "expenseCategory",
+            "expenseSubcategory",
             expense.subcategory
         );
 
+        fillMoneyInput(
+            $("expenseAmount"),
+            expense.amount
+        );
 
-        document.getElementById(
-            "expenseAmount"
-        ).value =
-            formatCurrency(
-                expense.amount
-            );
-
-
-        document.getElementById(
-            "expenseDate"
-        ).value =
-            expense.date || "";
-
-
-        document.getElementById(
-            "expenseNotes"
-        ).value =
+        $("expenseNotes").value =
             expense.notes || "";
 
     } else {
 
-        if (title) {
-            title.textContent =
-                "Nova despesa";
-        }
-
-
-        if (hiddenId) {
-            hiddenId.value =
-                "";
-        }
-
-
-        const date =
-            document.getElementById(
-                "expenseDate"
-            );
-
-
-        if (date) {
-            date.value =
-                getTodayDate();
-        }
-    }
-
-
-    modal.classList.add(
-        "show"
-    );
-
-
-    setTimeout(
-        () => {
-
-            document.getElementById(
-                "expenseDescription"
-            )?.focus();
-
-        },
-        50
-    );
-}
-
-
-function closeExpenseModal() {
-
-    const modal =
-        document.getElementById(
-            "expenseModal"
-        );
-
-
-    if (modal) {
-
-        modal.classList.remove(
-            "show"
-        );
-    }
-
-
-    editingExpenseId =
-        null;
-}
-
-
-function saveExpense() {
-
-    const description =
-        document.getElementById(
-            "expenseDescription"
-        )?.value.trim();
-
-
-    const category =
-        document.getElementById(
-            "expenseCategory"
-        )?.value;
-
-
-    const subcategory =
-        document.getElementById(
+        updateSubcategories(
+            "expenseCategory",
             "expenseSubcategory"
-        )?.value;
-
-
-    const amount =
-        parseMoney(
-            document.getElementById(
-                "expenseAmount"
-            )?.value
         );
-
-
-    const date =
-        document.getElementById(
-            "expenseDate"
-        )?.value ||
-        getTodayDate();
-
-
-    const notes =
-        document.getElementById(
-            "expenseNotes"
-        )?.value.trim();
-
-
-    if (!description) {
-
-        showToast(
-            "Informe a descrição da despesa."
-        );
-
-        return;
     }
 
+    openModal("expenseModal");
+}
 
-    if (!category) {
 
-        showToast(
-            "Selecione uma categoria."
+function openQuoteModal(quote = null) {
+
+    $("quoteForm").reset();
+
+    $("quoteId").value = "";
+
+    $("quoteModalTitle").textContent =
+        quote
+            ? "Editar cotação"
+            : "Nova cotação";
+
+    $("quoteDate").value =
+        quote?.date ||
+        today();
+
+
+    if (quote) {
+
+        $("quoteId").value =
+            quote.id;
+
+        $("quoteProduct").value =
+            quote.product;
+
+        $("quoteCategory").value =
+            quote.category;
+
+        updateSubcategories(
+            "quoteCategory",
+            "quoteSubcategory",
+            quote.subcategory
         );
 
-        return;
-    }
+        $("quoteStore").value =
+            quote.store;
 
-
-    if (!amount || amount <= 0) {
-
-        showToast(
-            "Informe um valor válido."
+        fillMoneyInput(
+            $("quotePrice"),
+            quote.price
         );
 
-        return;
-    }
-
-
-    const expense = {
-
-        id:
-            editingExpenseId ||
-            createId(),
-
-        description,
-
-        category,
-
-        subcategory:
-            subcategory || "",
-
-        amount,
-
-        date,
-
-        notes:
-            notes || "",
-
-        createdAt:
-            new Date().toISOString()
-
-    };
-
-
-    if (editingExpenseId) {
-
-        const index =
-            appData.expenses.findIndex(
-                item =>
-                    item.id ===
-                    editingExpenseId
-            );
-
-
-        if (index !== -1) {
-
-            appData.expenses[
-                index
-            ] = {
-
-                ...appData.expenses[
-                    index
-                ],
-
-                ...expense
-
-            };
-        }
+        $("quoteNotes").value =
+            quote.notes || "";
 
     } else {
 
-        appData.expenses.unshift(
-            expense
+        updateSubcategories(
+            "quoteCategory",
+            "quoteSubcategory"
         );
+    }
+
+    openModal("quoteModal");
+}
+
+
+/* =========================================================
+   DESPESAS
+========================================================= */
+
+function saveExpense(event) {
+
+    event.preventDefault();
+
+    const id =
+        $("expenseId").value ||
+        uid();
+
+    const item = {
+        id,
+
+        description:
+            $("expenseDescription")
+                .value
+                .trim(),
+
+        category:
+            $("expenseCategory")
+                .value,
+
+        subcategory:
+            $("expenseSubcategory")
+                .value,
+
+        amount:
+            parseMoney(
+                $("expenseAmount")
+                    .value
+            ),
+
+        date:
+            $("expenseDate")
+                .value,
+
+        notes:
+            $("expenseNotes")
+                .value
+                .trim()
+    };
+
+
+    const index =
+        appData.expenses.findIndex(
+            expense =>
+                expense.id === id
+        );
+
+
+    if (index >= 0) {
+        appData.expenses[index] =
+            item;
+    } else {
+        appData.expenses.push(item);
     }
 
 
     saveData();
 
-    closeExpenseModal();
+    closeModal("expenseModal");
 
     renderExpenses();
 
     updateDashboard();
 
     showToast(
-        editingExpenseId
-            ? "Despesa atualizada."
-            : "Despesa adicionada."
+        "Despesa salva com sucesso."
     );
 }
 
 
-function editExpense(
-    expenseId
-) {
+function editExpense(id) {
 
-    openExpenseModal(
-        expenseId
-    );
-}
-
-
-function deleteExpense(
-    expenseId
-) {
-
-    const expense =
+    const item =
         appData.expenses.find(
-            item =>
-                item.id ===
-                expenseId
+            expense =>
+                expense.id === id
         );
 
+    if (item) {
+        openExpenseModal(item);
+    }
+}
 
-    if (!expense) {
+
+function deleteExpense(id) {
+
+    if (
+        !confirm(
+            "Excluir esta despesa?"
+        )
+    ) {
         return;
     }
-
-
-    const confirmed =
-        window.confirm(
-            `Excluir a despesa "${expense.description}"?`
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
 
     appData.expenses =
         appData.expenses.filter(
-            item =>
-                item.id !==
-                expenseId
+            expense =>
+                expense.id !== id
         );
-
 
     saveData();
 
@@ -1131,410 +1208,289 @@ function deleteExpense(
 }
 
 
-/* =====================================================
-   FORMULÁRIO DE COTAÇÕES
-===================================================== */
-
-function setupQuoteForm() {
-
-    const form =
-        document.getElementById(
-            "quoteForm"
-        );
-
-
-    if (!form) {
-        return;
-    }
-
-
-    document
-        .getElementById(
-            "quoteCategory"
-        )
-        ?.addEventListener(
-            "change",
-            () => updateQuoteSubcategories()
-        );
-
-
-    const price =
-        document.getElementById(
-            "quotePrice"
-        );
-
-
-    price?.addEventListener(
-        "input",
-        () => moneyMask(price)
-    );
-
-
-    form.addEventListener(
-        "submit",
-        event => {
-
-            event.preventDefault();
-
-            saveQuote();
-        }
-    );
-}
-
-
-function openQuoteModal(
-    quoteId = null
-) {
-
-    const modal =
-        document.getElementById(
-            "quoteModal"
-        );
-
-
-    const form =
-        document.getElementById(
-            "quoteForm"
-        );
-
-
-    if (!modal || !form) {
-        return;
-    }
-
-
-    editingQuoteId =
-        quoteId;
-
-
-    form.reset();
-
-
-    const title =
-        document.getElementById(
-            "quoteModalTitle"
-        );
-
-
-    const hiddenId =
-        document.getElementById(
-            "quoteId"
-        );
-
-
-    if (quoteId) {
-
-        const quote =
-            quotes.find(
-                item =>
-                    item.id ===
-                    quoteId
-            );
-
-
-        if (!quote) {
-            return;
-        }
-
-
-        if (title) {
-            title.textContent =
-                "Editar cotação";
-        }
-
-
-        if (hiddenId) {
-            hiddenId.value =
-                quote.id;
-        }
-
-
-        document.getElementById(
-            "quoteProduct"
-        ).value =
-            quote.product || "";
-
-
-        document.getElementById(
-            "quoteCategory"
-        ).value =
-            quote.category || "";
-
-
-        updateQuoteSubcategories(
-            quote.subcategory
-        );
-
-
-        document.getElementById(
-            "quoteStore"
-        ).value =
-            quote.store || "";
-
-
-        document.getElementById(
-            "quotePrice"
-        ).value =
-            formatCurrency(
-                quote.price
-            );
-
-
-        document.getElementById(
-            "quoteDate"
-        ).value =
-            quote.date || "";
-
-
-        document.getElementById(
-            "quoteNotes"
-        ).value =
-            quote.notes || "";
-
-    } else {
-
-        if (title) {
-            title.textContent =
-                "Nova cotação";
-        }
-
-
-        if (hiddenId) {
-            hiddenId.value =
-                "";
-        }
-
-
-        document.getElementById(
-            "quoteDate"
-        ).value =
-            getTodayDate();
-    }
-
-
-    modal.classList.add(
-        "show"
-    );
-}
-
-
-function closeQuoteModal() {
-
-    const modal =
-        document.getElementById(
-            "quoteModal"
-        );
-
-
-    if (modal) {
-
-        modal.classList.remove(
-            "show"
-        );
-    }
-
-
-    editingQuoteId =
-        null;
-}
-
-
-function saveQuote() {
-
-    const product =
-        document.getElementById(
-            "quoteProduct"
-        )?.value.trim();
-
+function renderExpenses() {
+
+    const body =
+        $("expensesTableBody");
+
+    const empty =
+        $("expensesEmpty");
+
+    const search =
+        $("expenseSearch")
+            .value
+            .toLowerCase()
+            .trim();
 
     const category =
-        document.getElementById(
-            "quoteCategory"
-        )?.value;
+        $("expenseCategoryFilter")
+            .value;
+
+    const month =
+        $("expenseMonthFilter")
+            .value;
 
 
-    const subcategory =
-        document.getElementById(
-            "quoteSubcategory"
-        )?.value;
+    let list = [
+        ...appData.expenses
+    ];
 
 
-    const store =
-        document.getElementById(
-            "quoteStore"
-        )?.value.trim();
+    if (search) {
 
-
-    const price =
-        parseMoney(
-            document.getElementById(
-                "quotePrice"
-            )?.value
-        );
-
-
-    const date =
-        document.getElementById(
-            "quoteDate"
-        )?.value ||
-        getTodayDate();
-
-
-    const notes =
-        document.getElementById(
-            "quoteNotes"
-        )?.value.trim();
-
-
-    if (!product) {
-
-        showToast(
-            "Informe o produto ou serviço."
-        );
-
-        return;
+        list =
+            list.filter(expense =>
+                [
+                    expense.description,
+                    expense.category,
+                    expense.subcategory,
+                    expense.notes
+                ]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(search)
+            );
     }
 
 
-    if (!category) {
+    if (category) {
 
-        showToast(
-            "Selecione uma categoria."
-        );
-
-        return;
+        list =
+            list.filter(
+                expense =>
+                    expense.category ===
+                    category
+            );
     }
 
 
-    if (!price || price <= 0) {
+    if (month) {
 
-        showToast(
-            "Informe um preço válido."
-        );
-
-        return;
+        list =
+            list.filter(
+                expense =>
+                    String(
+                        expense.date || ""
+                    ).startsWith(month)
+            );
     }
 
 
-    const quote = {
+    list.sort(
+        (a, b) =>
+            String(b.date)
+                .localeCompare(
+                    String(a.date)
+                )
+    );
 
-        id:
-            editingQuoteId ||
-            createId(),
 
-        product,
+    body.innerHTML =
+        list
+            .map(expense => `
+                <tr>
+                    <td>
+                        <strong>
+                            ${escapeHTML(
+                                expense.description
+                            )}
+                        </strong>
 
-        category,
+                        <small class="table-sub">
+                            ${escapeHTML(
+                                expense.subcategory || ""
+                            )}
+                        </small>
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            expense.category
+                        )}
+                    </td>
+
+                    <td>
+                        ${formatDate(
+                            expense.date
+                        )}
+                    </td>
+
+                    <td>
+                        <strong>
+                            ${money(
+                                expense.amount
+                            )}
+                        </strong>
+                    </td>
+
+                    <td class="table-actions">
+
+                        <button
+                            class="table-action"
+                            data-edit-expense="${expense.id}"
+                            type="button"
+                        >
+                            Editar
+                        </button>
+
+                        <button
+                            class="table-action danger"
+                            data-delete-expense="${expense.id}"
+                            type="button"
+                        >
+                            Excluir
+                        </button>
+
+                    </td>
+                </tr>
+            `)
+            .join("");
+
+
+    empty.classList.toggle(
+        "visible",
+        list.length === 0
+    );
+}
+
+
+function setupExpenseFilters() {
+
+    const months = [
+        ...new Set(
+            appData.expenses
+                .map(
+                    expense =>
+                        String(
+                            expense.date || ""
+                        ).slice(0, 7)
+                )
+                .filter(Boolean)
+        )
+    ]
+        .sort()
+        .reverse();
+
+
+    $("expenseMonthFilter").innerHTML =
+        '<option value="">Todos os meses</option>' +
+        months
+            .map(
+                month =>
+                    `<option value="${month}">${month}</option>`
+            )
+            .join("");
+}
+
+
+/* =========================================================
+   COTAÇÕES
+========================================================= */
+
+function saveQuote(event) {
+
+    event.preventDefault();
+
+    const id =
+        $("quoteId").value ||
+        uid();
+
+    const item = {
+        id,
+
+        product:
+            $("quoteProduct")
+                .value
+                .trim(),
+
+        category:
+            $("quoteCategory")
+                .value,
 
         subcategory:
-            subcategory || "",
+            $("quoteSubcategory")
+                .value,
 
         store:
-            store || "",
+            $("quoteStore")
+                .value
+                .trim(),
 
-        price,
+        price:
+            parseMoney(
+                $("quotePrice")
+                    .value
+            ),
 
-        date,
+        date:
+            $("quoteDate")
+                .value,
 
         notes:
-            notes || "",
-
-        createdAt:
-            new Date().toISOString()
-
+            $("quoteNotes")
+                .value
+                .trim()
     };
 
 
-    if (editingQuoteId) {
-
-        const index =
-            quotes.findIndex(
-                item =>
-                    item.id ===
-                    editingQuoteId
-            );
-
-
-        if (index !== -1) {
-
-            quotes[index] = {
-
-                ...quotes[index],
-
-                ...quote
-
-            };
-        }
-
-    } else {
-
-        quotes.unshift(
-            quote
+    const index =
+        quotes.findIndex(
+            quote =>
+                quote.id === id
         );
+
+
+    if (index >= 0) {
+        quotes[index] =
+            item;
+    } else {
+        quotes.push(item);
     }
 
 
     saveQuotes();
 
-    closeQuoteModal();
+    closeModal("quoteModal");
 
     renderQuotes();
 
     updateDashboard();
 
     showToast(
-        editingQuoteId
-            ? "Cotação atualizada."
-            : "Cotação adicionada."
+        "Cotação salva com sucesso."
     );
 }
 
 
-function editQuote(
-    quoteId
-) {
+function editQuote(id) {
 
-    openQuoteModal(
-        quoteId
-    );
-}
-
-
-function deleteQuote(
-    quoteId
-) {
-
-    const quote =
+    const item =
         quotes.find(
-            item =>
-                item.id ===
-                quoteId
+            quote =>
+                quote.id === id
         );
 
+    if (item) {
+        openQuoteModal(item);
+    }
+}
 
-    if (!quote) {
+
+function deleteQuote(id) {
+
+    if (
+        !confirm(
+            "Excluir esta cotação?"
+        )
+    ) {
         return;
     }
-
-
-    const confirmed =
-        window.confirm(
-            `Excluir a cotação de "${quote.product}"?`
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
 
     quotes =
         quotes.filter(
-            item =>
-                item.id !==
-                quoteId
+            quote =>
+                quote.id !== id
         );
-
 
     saveQuotes();
 
@@ -1548,1658 +1504,322 @@ function deleteQuote(
 }
 
 
-/* =====================================================
-   ORDENAR / FILTRAR DESPESAS
-===================================================== */
+function quoteStatus(
+    price,
+    available
+) {
 
-function getFilteredExpenses() {
-
-    const search =
-        document.getElementById(
-            "expenseSearch"
-        )?.value
-            .trim()
-            .toLowerCase() || "";
-
-
-    const category =
-        document.getElementById(
-            "expenseCategoryFilter"
-        )?.value || "";
-
-
-    const month =
-        document.getElementById(
-            "expenseMonthFilter"
-        )?.value || "";
-
-
-    return appData.expenses
-        .filter(expense => {
-
-            const matchesSearch =
-                !search ||
-                expense.description
-                    ?.toLowerCase()
-                    .includes(search) ||
-                expense.category
-                    ?.toLowerCase()
-                    .includes(search) ||
-                expense.subcategory
-                    ?.toLowerCase()
-                    .includes(search) ||
-                expense.notes
-                    ?.toLowerCase()
-                    .includes(search);
-
-
-            const matchesCategory =
-                !category ||
-                expense.category ===
-                    category;
-
-
-            const matchesMonth =
-                !month ||
-                String(
-                    expense.date || ""
-                ).startsWith(
-                    month
-                );
-
-
-            return (
-                matchesSearch &&
-                matchesCategory &&
-                matchesMonth
-            );
-
-        })
-        .sort(
-            (
-                a,
-                b
-            ) =>
-                String(
-                    b.date || ""
-                ).localeCompare(
-                    String(
-                        a.date || ""
-                    )
-                )
-        );
-}
-
-
-/* =====================================================
-   RENDER — DESPESAS
-===================================================== */
-
-function renderExpenses() {
-
-    const container =
-        document.getElementById(
-            "expensesTableBody"
-        );
-
-
-    const empty =
-        document.getElementById(
-            "expensesEmpty"
-        );
-
-
-    if (!container) {
-        return;
+    if (!appData.monthlyBalance) {
+        return [
+            "neutral",
+            "Defina seu saldo"
+        ];
     }
 
-
-    const expenses =
-        getFilteredExpenses();
-
-
-    if (!expenses.length) {
-
-        container.innerHTML =
-            "";
-
-
-        if (empty) {
-
-            empty.style.display =
-                "block";
-        }
-
-
-        return;
+    if (price > available) {
+        return [
+            "danger",
+            "Risco de perda"
+        ];
     }
 
-
-    if (empty) {
-
-        empty.style.display =
-            "none";
+    if (
+        available > 0 &&
+        price / available >= 0.1
+    ) {
+        return [
+            "warning",
+            "Cuidado"
+        ];
     }
 
-
-    container.innerHTML =
-        expenses
-            .map(
-                expense => `
-
-                    <tr>
-
-                        <td>
-
-                            <strong>
-                                ${escapeHTML(
-                                    expense.description
-                                )}
-                            </strong>
-
-                            ${
-                                expense.notes
-                                    ? `
-                                        <small>
-                                            ${escapeHTML(
-                                                expense.notes
-                                            )}
-                                        </small>
-                                      `
-                                    : ""
-                            }
-
-                        </td>
-
-
-                        <td>
-
-                            <span class="category-badge">
-                                ${escapeHTML(
-                                    expense.category
-                                )}
-                            </span>
-
-                            ${
-                                expense.subcategory
-                                    ? `
-                                        <small>
-                                            ${escapeHTML(
-                                                expense.subcategory
-                                            )}
-                                        </small>
-                                      `
-                                    : ""
-                            }
-
-                        </td>
-
-
-                        <td>
-                            ${formatCurrency(
-                                expense.amount
-                            )}
-                        </td>
-
-
-                        <td>
-                            ${formatDate(
-                                expense.date
-                            )}
-                        </td>
-
-
-                        <td class="actions">
-
-                            <button
-                                class="icon-button"
-                                type="button"
-                                title="Editar"
-                                onclick="editExpense('${expense.id}')">
-                                ✏️
-                            </button>
-
-                            <button
-                                class="icon-button danger"
-                                type="button"
-                                title="Excluir"
-                                onclick="deleteExpense('${expense.id}')">
-                                🗑️
-                            </button>
-
-                        </td>
-
-                    </tr>
-
-                `
-            )
-            .join("");
-}
-
-
-/* =====================================================
-   RENDER — COTAÇÕES
-===================================================== */
-
-function getFilteredQuotes() {
-
-    const search =
-        document.getElementById(
-            "quoteSearch"
-        )?.value
-            .trim()
-            .toLowerCase() || "";
-
-
-    const category =
-        document.getElementById(
-            "quoteCategoryFilter"
-        )?.value || "";
-
-
-    return quotes
-        .filter(quote => {
-
-            const matchesSearch =
-                !search ||
-                quote.product
-                    ?.toLowerCase()
-                    .includes(search) ||
-                quote.store
-                    ?.toLowerCase()
-                    .includes(search) ||
-                quote.category
-                    ?.toLowerCase()
-                    .includes(search) ||
-                quote.subcategory
-                    ?.toLowerCase()
-                    .includes(search) ||
-                quote.notes
-                    ?.toLowerCase()
-                    .includes(search);
-
-
-            const matchesCategory =
-                !category ||
-                quote.category ===
-                    category;
-
-
-            return (
-                matchesSearch &&
-                matchesCategory
-            );
-
-        })
-        .sort(
-            (
-                a,
-                b
-            ) =>
-                String(
-                    b.date || ""
-                ).localeCompare(
-                    String(
-                        a.date || ""
-                    )
-                )
-        );
+    return [
+        "good",
+        "Pode comprar"
+    ];
 }
 
 
 function renderQuotes() {
 
+    const search =
+        $("quoteSearch")
+            .value
+            .toLowerCase()
+            .trim();
+
+    const category =
+        $("quoteCategoryFilter")
+            .value;
+
+
+    let list = [
+        ...quotes
+    ];
+
+
+    if (search) {
+
+        list =
+            list.filter(quote =>
+                [
+                    quote.product,
+                    quote.store,
+                    quote.category,
+                    quote.subcategory,
+                    quote.notes
+                ]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(search)
+            );
+    }
+
+
+    if (category) {
+
+        list =
+            list.filter(
+                quote =>
+                    quote.category ===
+                    category
+            );
+    }
+
+
+    const groups =
+        groupQuotes(list);
+
     const container =
-        document.getElementById(
-            "quotesContainer"
-        );
+        $("quotesContainer");
 
 
-    const empty =
-        document.getElementById(
-            "quotesEmpty"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const filtered =
-        getFilteredQuotes();
-
-
-    if (!filtered.length) {
-
-        container.innerHTML =
-            "";
-
-
-        if (empty) {
-
-            empty.style.display =
-                "block";
-        }
-
-
-        return;
-    }
-
-
-    if (empty) {
-
-        empty.style.display =
-            "none";
-    }
+    $("quotesEmpty").classList.toggle(
+        "visible",
+        groups.length === 0
+    );
 
 
     container.innerHTML =
-        filtered
-            .map(
-                quote => `
+        groups
+            .map(group => {
 
+                const cheapest =
+                    group[0];
+
+                const saving =
+                    Math.max(
+                        0,
+                        Number(
+                            group.at(-1)?.price ||
+                            0
+                        ) -
+                        Number(
+                            cheapest.price ||
+                            0
+                        )
+                    );
+
+
+                return `
                     <article class="quote-card">
 
-                        <div class="quote-card-main">
+                        <div class="quote-card-header">
 
                             <div>
 
-                                <span class="quote-category">
-                                    ${escapeHTML(
-                                        quote.category
-                                    )}
-                                </span>
-
                                 <h3>
                                     ${escapeHTML(
-                                        quote.product
+                                        cheapest.product
                                     )}
                                 </h3>
 
-                                ${
-                                    quote.subcategory
-                                        ? `
-                                            <p class="quote-subcategory">
-                                                ${escapeHTML(
-                                                    quote.subcategory
-                                                )}
-                                            </p>
-                                          `
-                                        : ""
-                                }
+                                <span>
+                                    ${escapeHTML(
+                                        cheapest.category
+                                    )}
+                                    •
+                                    ${escapeHTML(
+                                        cheapest.subcategory
+                                    )}
+                                </span>
 
                             </div>
 
+                            ${
+                                saving > 0
+                                    ? `
+                                        <div class="saving-badge">
+                                            Economia possível:
+                                            ${money(saving)}
+                                        </div>
+                                    `
+                                    : ""
+                            }
 
-                            <strong class="quote-price">
-                                ${formatCurrency(
-                                    quote.price
+                        </div>
+
+
+                        <div class="quote-prices">
+
+                            ${group
+                                .map(quote => `
+                                    <div class="quote-price-row">
+
+                                        <div class="quote-store">
+
+                                            <strong>
+                                                ${escapeHTML(
+                                                    quote.store
+                                                )}
+                                            </strong>
+
+                                            <small>
+                                                ${formatDate(
+                                                    quote.date
+                                                )}
+                                            </small>
+
+                                        </div>
+
+
+                                        <div class="quote-price">
+                                            ${money(
+                                                quote.price
+                                            )}
+                                        </div>
+
+
+                                        <div class="quote-row-actions">
+
+                                            <button
+                                                type="button"
+                                                data-details="${quote.id}"
+                                            >
+                                                Mais detalhes
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                data-edit-quote="${quote.id}"
+                                            >
+                                                Editar
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                data-delete-quote="${quote.id}"
+                                                class="danger-text"
+                                            >
+                                                Excluir
+                                            </button>
+
+                                        </div>
+
+
+                                        <div
+                                            class="quote-details"
+                                            id="details-${quote.id}"
+                                        >
+
+                                            <strong>
+                                                Observação
+                                            </strong>
+
+                                            <p>
+                                                ${escapeHTML(
+                                                    quote.notes ||
+                                                    "Nenhuma observação informada."
+                                                )}
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+                                `)
+                                .join("")}
+
+                        </div>
+
+
+                        <div class="quote-summary">
+
+                            <span>
+                                Melhor preço
+                            </span>
+
+                            <strong>
+                                ${escapeHTML(
+                                    cheapest.store
+                                )}
+                                •
+                                ${money(
+                                    cheapest.price
                                 )}
                             </strong>
 
                         </div>
 
-
-                        <div class="quote-meta">
-
-                            <span>
-                                🏪
-                                ${escapeHTML(
-                                    quote.store ||
-                                    "Sem loja informada"
-                                )}
-                            </span>
-
-                            <span>
-                                📅
-                                ${formatDate(
-                                    quote.date
-                                )}
-                            </span>
-
-                        </div>
-
-
-                        <details>
-
-                            <summary>
-                                Mais detalhes
-                            </summary>
-
-                            <div class="quote-details">
-
-                                ${
-                                    quote.notes
-                                        ? `
-                                            <p>
-                                                <strong>
-                                                    Observação:
-                                                </strong>
-
-                                                ${escapeHTML(
-                                                    quote.notes
-                                                )}
-                                            </p>
-                                          `
-                                        : `
-                                            <p>
-                                                Nenhuma observação registrada.
-                                            </p>
-                                          `
-                                }
-
-                            </div>
-
-                        </details>
-
-
-                        <div class="quote-actions">
-
-                            <button
-                                type="button"
-                                class="btn btn-secondary"
-                                onclick="editQuote('${quote.id}')">
-                                ✏️ Editar
-                            </button>
-
-                            <button
-                                type="button"
-                                class="btn btn-danger"
-                                onclick="deleteQuote('${quote.id}')">
-                                🗑️ Excluir
-                            </button>
-
-                        </div>
-
                     </article>
-
-                `
-            )
+                `;
+            })
             .join("");
 }
 
 
-/* =====================================================
-   DASHBOARD
-===================================================== */
-
-function updateDashboard() {
-
-    const month =
-        getCurrentMonth();
-
-
-    const monthExpenses =
-        appData.expenses.filter(
-            expense =>
-                String(
-                    expense.date || ""
-                ).startsWith(
-                    month
-                )
-        );
-
-
-    const spent =
-        monthExpenses.reduce(
-            (
-                total,
-                expense
-            ) =>
-                total +
-                Number(
-                    expense.amount
-                || 0
-                ),
-            0
-        );
-
-
-    const planned =
-        getPlannedQuotesTotal();
-
-
-    const balance =
-        Number(
-            appData.monthlyBalance
-        ) || 0;
-
-
-    const plan =
-        calculateBudgetPlan(
-            balance,
-            spent,
-            planned
-        );
-
-
-    setText(
-        "dashboardBudget",
-        formatCurrency(
-            plan.spendingLimit
-        )
-    );
-
-
-    setText(
-        "dashboardSpent",
-        formatCurrency(
-            spent
-        )
-    );
-
-
-    setText(
-        "dashboardPlanned",
-        formatCurrency(
-            planned
-        )
-    );
-
-
-    setText(
-        "dashboardProjected",
-        formatCurrency(
-            plan.remainingAfterPlanned
-        )
-    );
-
-
-    setText(
-        "dashboardProjectedLabel",
-        plan.remainingAfterPlanned < 0
-            ? "Déficit projetado"
-            : "Saldo após planejamento"
-    );
-
-
-    setText(
-        "quoteCount",
-        String(
-            quotes.length
-        )
-    );
-
-
-    setText(
-        "totalExpenses",
-        formatCurrency(
-            spent
-        )
-    );
-
-
-    updateSalaryInput();
-
-    updateBudgetPlanning();
-
-    renderDashboardQuotes();
-
-    renderRecentExpenses();
-
-    renderPurchaseStatus();
-
-    renderCategorySummary();
-}
-
-
-/* =====================================================
-   PLANEJAMENTO DE ORÇAMENTO
-===================================================== */
-
-function setupBudgetControl() {
-
-    const input =
-        document.getElementById(
-            "salaryInput"
-        );
-
-
-    if (!input) {
-        return;
-    }
-
-
-    input.value =
-        formatSalaryInputValue(
-            appData.monthlyBalance
-        );
-
-
-    input.addEventListener(
-        "input",
-        () => salaryMask(input)
-    );
-
-
-    input.addEventListener(
-        "blur",
-        () => {
-
-            input.value =
-                formatSalaryInputValue(
-                    parseSalary(
-                        input.value
-                    )
-                );
-
-        }
-    );
-}
-
-
-function setupBudgetPlanner() {
-
-    document
-        .querySelectorAll(
-            "[data-budget-mode]"
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    setBudgetMode(
-                        button.dataset
-                            .budgetMode
-                    );
-
-                }
-            );
-
-        });
-
-
-    document
-        .querySelectorAll(
-            "[data-budget-percentage]"
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    setBudgetPercentage(
-                        Number(
-                            button.dataset
-                                .budgetPercentage
-                        )
-                    );
-
-                }
-            );
-
-        });
-
-
-    updateBudgetPlannerControls();
-}
-
-
-function normalizeBudgetPercentage(
-    value
-) {
-
-    const allowed = [
-        50,
-        60,
-        70,
-        80,
-        90
-    ];
-
-
-    const numeric =
-        Number(value);
-
-
-    return allowed.includes(
-        numeric
-    )
-        ? numeric
-        : 70;
-}
-
-
-function calculateAutomaticPercentage(
-    balance,
-    spent,
-    planned
-) {
-
-    if (!balance || balance <= 0) {
-        return 70;
-    }
-
-
-    const committed =
-        spent +
-        planned;
-
-
-    const committedRatio =
-        committed /
-        balance;
-
-
-    if (committedRatio >= 0.90) {
-        return 50;
-    }
-
-
-    if (committedRatio >= 0.75) {
-        return 60;
-    }
-
-
-    if (committedRatio >= 0.55) {
-        return 70;
-    }
-
-
-    return 80;
-}
-
-
-function calculateBudgetPlan(
-    balance,
-    spent,
-    planned
-) {
-
-    const safeBalance =
-        Math.max(
-            Number(balance) || 0,
-            0
-        );
-
-
-    const safeSpent =
-        Math.max(
-            Number(spent) || 0,
-            0
-        );
-
-
-    const safePlanned =
-        Math.max(
-            Number(planned) || 0,
-            0
-        );
-
-
-    const percentage =
-        appData.budgetMode ===
-            "manual"
-
-            ? normalizeBudgetPercentage(
-                appData.budgetPercentage
-            )
-
-            : calculateAutomaticPercentage(
-                safeBalance,
-                safeSpent,
-                safePlanned
-            );
-
-
-    const spendingLimit =
-        safeBalance *
-        (
-            percentage /
-            100
-        );
-
-
-    const reserve =
-        safeBalance -
-        spendingLimit;
-
-
-    const usedAgainstLimit =
-        spendingLimit > 0
-            ? (
-                safeSpent /
-                spendingLimit
-            ) * 100
-            : 0;
-
-
-    const remainingToSpend =
-        spendingLimit -
-        safeSpent;
-
-
-    const remainingAfterPlanned =
-        spendingLimit -
-        safeSpent -
-        safePlanned;
-
-
-    let status =
-        "safe";
-
-
-    if (
-        remainingAfterPlanned <
-        0
-    ) {
-
-        status =
-            "danger";
-
-    } else if (
-        usedAgainstLimit >=
-        85
-    ) {
-
-        status =
-            "warning";
-    }
-
-
-    return {
-
-        percentage,
-
-        spendingLimit,
-
-        reserve,
-
-        usedAgainstLimit,
-
-        remainingToSpend,
-
-        remainingAfterPlanned,
-
-        status
-
-    };
-}
-
-
-function setBudgetMode(
-    mode
-) {
-
-    appData.budgetMode =
-        mode === "manual"
-            ? "manual"
-            : "auto";
-
-
-    saveData();
-
-    updateBudgetPlannerControls();
-
-    updateBudgetPlanning();
-
-    updateDashboard();
-
-    showToast(
-        appData.budgetMode ===
-            "manual"
-            ? "Modo manual ativado."
-            : "Plano automático ativado."
-    );
-}
-
-
-function setBudgetPercentage(
-    percentage
-) {
-
-    const normalized =
-        normalizeBudgetPercentage(
-            percentage
-        );
-
-
-    appData.budgetPercentage =
-        normalized;
-
-
-    appData.budgetMode =
-        "manual";
-
-
-    saveData();
-
-    updateBudgetPlannerControls();
-
-    updateBudgetPlanning();
-
-    updateDashboard();
-
-    showToast(
-        `Teto manual definido em ${normalized}%.`
-    );
-}
-
-
-function updateBudgetPlannerControls() {
-
-    document
-        .querySelectorAll(
-            "[data-budget-mode]"
-        )
-        .forEach(button => {
-
-            button.classList.toggle(
-                "active",
-                button.dataset
-                    .budgetMode ===
-                    appData.budgetMode
-            );
-
-        });
-
-
-    document
-        .querySelectorAll(
-            "[data-budget-percentage]"
-        )
-        .forEach(button => {
-
-            button.classList.toggle(
-                "active",
-                appData.budgetMode ===
-                    "manual" &&
-                Number(
-                    button.dataset
-                        .budgetPercentage
-                ) ===
-                    appData.budgetPercentage
-            );
-
-        });
-}
-
-
-function updateSalaryInput() {
-
-    const input =
-        document.getElementById(
-            "salaryInput"
-        );
-
-
-    if (!input) {
-        return;
-    }
-
-
-    if (
-        document.activeElement !==
-        input
-    ) {
-
-        input.value =
-            formatSalaryInputValue(
-                appData.monthlyBalance
-            );
-    }
-}
-
-
-function saveSalary() {
-
-    const input =
-        document.getElementById(
-            "salaryInput"
-        );
-
-
-    if (!input) {
-        return;
-    }
-
-
-    const value =
-        parseSalary(
-            input.value
-        );
-
-
-    appData.monthlyBalance =
-        value;
-
-
-    saveData();
-
-    input.value =
-        formatSalaryInputValue(
-            value
-        );
-
-
-    updateDashboard();
-
-    showToast(
-        value > 0
-            ? "Saldo disponível salvo."
-            : "Saldo zerado."
-    );
-}
-
-
-function saveMonthlyBalance() {
-
-    saveSalary();
-}
-
-
-function clearSalary() {
-
-    const confirmed =
-        window.confirm(
-            "Tem certeza que deseja limpar o saldo disponível deste mês?"
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    appData.monthlyBalance =
-        0;
-
-
-    saveData();
-
-
-    const input =
-        document.getElementById(
-            "salaryInput"
-        );
-
-
-    if (input) {
-        input.value =
-            "";
-    }
-
-
-    updateDashboard();
-
-    showToast(
-        "Saldo disponível foi limpo."
-    );
-}
-
-
-function parseSalary(
-    value
-) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-        return 0;
-    }
-
-
-    const text =
-        String(value)
-            .trim();
-
-
-    if (!text) {
-        return 0;
-    }
-
-
-    const digits =
-        text.replace(
-            /\D/g,
-            ""
-        );
-
-
-    if (!digits) {
-        return 0;
-    }
-
-
-    return (
-        parseInt(
-            digits,
-            10
-        ) / 100
-    );
-}
-
-
-function salaryMask(
-    input
-) {
-
-    if (!input) {
-        return;
-    }
-
-
-    const digits =
-        String(
-            input.value || ""
-        )
-            .replace(
-                /\D/g,
-                ""
-            );
-
-
-    if (!digits) {
-
-        input.value =
-            "";
-
-        return;
-    }
-
-
-    const value =
-        parseInt(
-            digits,
-            10
-        ) / 100;
-
-
-    input.value =
-        new Intl.NumberFormat(
-            "pt-BR",
-            {
-                style:
-                    "currency",
-
-                currency:
-                    "BRL"
-            }
-        )
-            .format(
-                value
-            );
-}
-
-
-function formatSalaryInputValue(
-    value
-) {
-
-    const numeric =
-        Number(value) || 0;
-
-
-    if (!numeric) {
-        return "";
-    }
-
-
-    return new Intl.NumberFormat(
-        "pt-BR",
-        {
-            style:
-                "currency",
-
-            currency:
-                "BRL"
-        }
-    )
-        .format(
-            numeric
-        );
-}
-
-
-function getPlannedQuotesTotal() {
-
-    return quotes.reduce(
-        (
-            total,
-            quote
-        ) =>
-            total +
-            (
-                Number(
-                    quote.price
-                ) || 0
-            ),
-        0
-    );
-}
-
-
-function updateBudgetPlanning() {
-
-    const balance =
-        Number(
-            appData.monthlyBalance
-        ) || 0;
-
-
-    const month =
-        getCurrentMonth();
-
-
-    const spent =
-        appData.expenses
-            .filter(
-                expense =>
-                    String(
-                        expense.date || ""
-                    ).startsWith(
-                        month
-                    )
-            )
-            .reduce(
-                (
-                    total,
-                    expense
-                ) =>
-                    total +
-                    (
-                        Number(
-                            expense.amount
-                        ) || 0
-                    ),
-                0
-            );
-
-
-    const planned =
-        getPlannedQuotesTotal();
-
-
-    const plan =
-        calculateBudgetPlan(
-            balance,
-            spent,
-            planned
-        );
-
-
-    setText(
-        "budgetProgressLabel",
-        `${formatCurrency(
-            spent
-        )} de ${formatCurrency(
-            plan.spendingLimit
-        )}`
-    );
-
-
-    setText(
-        "budgetProgressPercent",
-        `${Math.round(
-            Math.min(
-                plan.usedAgainstLimit,
-                999
-            )
-        )}%`
-    );
-
-
-    const progress =
-        document.getElementById(
-            "budgetProgress"
-        );
-
-
-    if (progress) {
-
-        progress.style.width =
-            `${Math.min(
-                Math.max(
-                    plan.usedAgainstLimit,
-                    0
-                ),
-                100
-            )}%`;
-
-
-        progress.classList.remove(
-            "safe",
-            "warning",
-            "danger"
-        );
-
-
-        progress.classList.add(
-            plan.status
-        );
-    }
-
-
-    const badge =
-        document.getElementById(
-            "budgetStatusBadge"
-        );
-
-
-    const statusText =
-        document.getElementById(
-            "budgetStatusText"
-        );
-
-
-    if (badge) {
-
-        badge.classList.remove(
-            "safe",
-            "warning",
-            "danger"
-        );
-
-
-        badge.classList.add(
-            plan.status
-        );
-    }
-
-
-    if (statusText) {
-
-        if (plan.status === "danger") {
-
-            statusText.textContent =
-                "Teto ultrapassado";
-
-        } else if (
-            plan.status === "warning"
-        ) {
-
-            statusText.textContent =
-                "Atenção aos gastos";
-
-        } else {
-
-            statusText.textContent =
-                "Dentro do planejamento";
-        }
-    }
-
-
-    setText(
-        "budgetPlanMode",
-        appData.budgetMode ===
-            "manual"
-            ? "Manual"
-            : "Automático"
-    );
-
-
-    setText(
-        "budgetPlanPercentage",
-        `${plan.percentage}%`
-    );
-
-
-    setText(
-        "budgetPlanLimit",
-        formatCurrency(
-            plan.spendingLimit
-        )
-    );
-
-
-    setText(
-        "budgetPlanReserve",
-        formatCurrency(
-            plan.reserve
-        )
-    );
-
-
-    setText(
-        "budgetPlanRemaining",
-        formatCurrency(
-            Math.max(
-                plan.remainingToSpend,
-                0
-            )
-        )
-    );
-}
-
-
-/* =====================================================
-   STATUS DE COMPRA
-===================================================== */
-
-function renderPurchaseStatus() {
-
-    const icon =
-        document.getElementById(
-            "purchaseStatusIcon"
-        );
-
-
-    const title =
-        document.getElementById(
-            "purchaseStatusTitle"
-        );
-
-
-    const description =
-        document.getElementById(
-            "purchaseStatusDescription"
-        );
-
-
-    if (
-        !icon ||
-        !title ||
-        !description
-    ) {
-        return;
-    }
-
-
-    const balance =
-        Number(
-            appData.monthlyBalance
-        ) || 0;
-
-
-    const month =
-        getCurrentMonth();
-
-
-    const spent =
-        appData.expenses
-            .filter(
-                expense =>
-                    String(
-                        expense.date || ""
-                    ).startsWith(
-                        month
-                    )
-            )
-            .reduce(
-                (
-                    total,
-                    expense
-                ) =>
-                    total +
-                    (
-                        Number(
-                            expense.amount
-                        ) || 0
-                    ),
-                0
-            );
-
-
-    const planned =
-        getPlannedQuotesTotal();
-
-
-    const plan =
-        calculateBudgetPlan(
-            balance,
-            spent,
-            planned
-        );
-
-
-    if (!balance) {
-
-        icon.textContent =
-            "💡";
-
-        title.textContent =
-            "Informe seu saldo disponível";
-
-        description.textContent =
-            "Cadastre quanto você tem disponível neste mês para ativar o planejamento de gastos.";
-
-        return;
-    }
-
-
-    if (
-        plan.remainingAfterPlanned <
-        0
-    ) {
-
-        icon.textContent =
-            "🔴";
-
-        title.textContent =
-            "Risco de perda";
-
-        description.textContent =
-            `Seu planejamento ultrapassa o teto em ${formatCurrency(
-                Math.abs(
-                    plan.remainingAfterPlanned
-                )
-            )}. Evite novos gastos até reorganizar o orçamento.`;
-
-        return;
-    }
-
-
-    if (
-        plan.usedAgainstLimit >=
-        85
-    ) {
-
-        icon.textContent =
-            "🟡";
-
-        title.textContent =
-            "Cuidado";
-
-        description.textContent =
-            `Você já utilizou ${Math.round(
-                plan.usedAgainstLimit
-            )}% do teto de gastos. Ainda pode gastar aproximadamente ${formatCurrency(
-                Math.max(
-                    plan.remainingToSpend,
-                    0
-                )
-            )}.`;
-
-        return;
-    }
-
-
-    icon.textContent =
-        "🟢";
-
-    title.textContent =
-        "Pode comprar";
-
-    description.textContent =
-        `Seu planejamento está dentro do limite. Você ainda tem aproximadamente ${formatCurrency(
-            Math.max(
-                plan.remainingToSpend,
-                0
-            )
-        )} disponíveis para gastos.`;
-}
-
-
-/* =====================================================
-   DASHBOARD — COTAÇÕES
-===================================================== */
+/* =========================================================
+   COTAÇÕES NO DASHBOARD
+========================================================= */
 
 function renderDashboardQuotes() {
 
     const container =
-        document.getElementById(
-            "dashboardQuotes"
+        $("dashboardQuotes");
+
+    const list =
+        groupQuotes(
+            getMonthlyQuotes()
+        )
+            .map(group => group[0]);
+
+
+    $("dashboardQuotesEmpty")
+        .classList
+        .toggle(
+            "visible",
+            list.length === 0
         );
 
 
-    const empty =
-        document.getElementById(
-            "dashboardQuotesEmpty"
+    const available =
+        Math.max(
+            0,
+            appData.monthlyBalance -
+            getMonthlyExpenses()
         );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const latest =
-        quotes
-            .slice()
-            .sort(
-                (
-                    a,
-                    b
-                ) =>
-                    String(
-                        b.date || ""
-                    ).localeCompare(
-                        String(
-                            a.date || ""
-                        )
-                    )
-            )
-            .slice(
-                0,
-                6
-            );
-
-
-    if (!latest.length) {
-
-        container.innerHTML =
-            "";
-
-
-        if (empty) {
-            empty.style.display =
-                "block";
-        }
-
-
-        return;
-    }
-
-
-    if (empty) {
-        empty.style.display =
-            "none";
-    }
 
 
     container.innerHTML =
-        latest
-            .map(
-                quote => `
+        list
+            .slice(0, 6)
+            .map(quote => {
 
-                    <article class="dashboard-quote-item">
+                const [
+                    className,
+                    label
+                ] =
+                    quoteStatus(
+                        Number(
+                            quote.price
+                        ),
+                        available
+                    );
 
-                        <div>
+
+                return `
+                    <div class="dashboard-quote-item">
+
+                        <div class="dashboard-quote-main">
 
                             <strong>
                                 ${escapeHTML(
@@ -3209,325 +1829,205 @@ function renderDashboardQuotes() {
 
                             <span>
                                 ${escapeHTML(
-                                    quote.store ||
-                                    "Sem loja"
+                                    quote.store
+                                )}
+                                •
+                                ${money(
+                                    quote.price
                                 )}
                             </span>
 
                         </div>
 
 
-                        <strong>
-                            ${formatCurrency(
-                                quote.price
-                            )}
-                        </strong>
+                        <div
+                            class="dashboard-quote-status ${className}"
+                        >
 
-                    </article>
+                            <strong>
+                                ${label}
+                            </strong>
 
-                `
-            )
+                            <small>
+                                ${escapeHTML(
+                                    quote.notes ||
+                                    "Sem observação"
+                                )}
+                            </small>
+
+                        </div>
+
+                    </div>
+                `;
+            })
             .join("");
 }
 
 
-/* =====================================================
-   DASHBOARD — DESPESAS RECENTES
-===================================================== */
+/* =========================================================
+   DESPESAS RECENTES
+========================================================= */
 
 function renderRecentExpenses() {
 
-    const container =
-        document.getElementById(
-            "recentExpenses"
-        );
-
-
-    const empty =
-        document.getElementById(
-            "recentExpensesEmpty"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const recent =
-        appData.expenses
-            .slice()
+    const list =
+        [
+            ...appData.expenses
+        ]
             .sort(
-                (
-                    a,
-                    b
-                ) =>
-                    String(
-                        b.date || ""
-                    ).localeCompare(
-                        String(
-                            a.date || ""
+                (a, b) =>
+                    String(b.date)
+                        .localeCompare(
+                            String(a.date)
                         )
-                    )
             )
-            .slice(
-                0,
-                6
-            );
+            .slice(0, 5);
 
-
-    if (!recent.length) {
-
-        container.innerHTML =
-            "";
-
-
-        if (empty) {
-            empty.style.display =
-                "block";
-        }
-
-
-        return;
-    }
-
-
-    if (empty) {
-        empty.style.display =
-            "none";
-    }
-
-
-    container.innerHTML =
-        recent
-            .map(
-                expense => `
-
-                    <article class="recent-expense-item">
-
-                        <div>
-
-                            <strong>
-                                ${escapeHTML(
-                                    expense.description
-                                )}
-                            </strong>
-
-                            <span>
-                                ${escapeHTML(
-                                    expense.category
-                                )}
-                                ${
-                                    expense.subcategory
-                                        ? ` • ${escapeHTML(
-                                            expense.subcategory
-                                        )}`
-                                        : ""
-                                }
-                            </span>
-
-                        </div>
-
-
-                        <div>
-
-                            <strong>
-                                ${formatCurrency(
-                                    expense.amount
-                                )}
-                            </strong>
-
-                            <span>
-                                ${formatDate(
-                                    expense.date
-                                )}
-                            </span>
-
-                        </div>
-
-                    </article>
-
-                `
-            )
-            .join("");
-}
-
-
-/* =====================================================
-   RESUMO POR CATEGORIA
-===================================================== */
-
-function renderCategorySummary() {
 
     const container =
-        document.getElementById(
-            "categorySummary"
+        $("recentExpenses");
+
+
+    $("recentExpensesEmpty")
+        .classList
+        .toggle(
+            "visible",
+            list.length === 0
         );
 
 
-    if (!container) {
-        return;
-    }
-
-
-    const totals = {};
-
-
-    appData.expenses.forEach(
-        expense => {
-
-            const category =
-                expense.category ||
-                "Outros";
-
-
-            totals[category] =
-                (
-                    totals[category] ||
-                    0
-                ) +
-                (
-                    Number(
-                        expense.amount
-                    ) || 0
-                );
-
-        }
-    );
-
-
-    const entries =
-        Object.entries(
-            totals
-        )
-            .sort(
-                (
-                    a,
-                    b
-                ) =>
-                    b[1] -
-                    a[1]
-            );
-
-
-    if (!entries.length) {
-
-        container.innerHTML = `
-
-            <div class="empty-state">
-
-                <div class="empty-icon">
-                    📊
-                </div>
-
-                <h3>
-                    Nenhum gasto registrado
-                </h3>
-
-                <p>
-                    Cadastre despesas para visualizar o resumo.
-                </p>
-
-            </div>
-
-        `;
-
-        return;
-    }
-
-
-    const max =
-        entries[0][1];
-
-
     container.innerHTML =
-        entries
-            .map(
-                (
-                    [
-                        category,
-                        total
-                    ]
-                ) => {
+        list
+            .map(expense => `
+                <div class="recent-item">
 
-                    const percentage =
-                        max > 0
-                            ? (
-                                total /
-                                max
-                            ) * 100
-                            : 0;
+                    <div class="recent-main">
 
+                        <strong>
+                            ${escapeHTML(
+                                expense.description
+                            )}
+                        </strong>
 
-                    return `
+                        <span>
+                            ${escapeHTML(
+                                expense.category
+                            )}
+                            •
+                            ${formatDate(
+                                expense.date
+                            )}
+                        </span>
 
-                        <div class="category-summary-item">
+                    </div>
 
-                            <div class="category-summary-header">
+                    <div class="recent-value">
+                        ${money(
+                            expense.amount
+                        )}
+                    </div>
 
-                                <span>
-                                    ${escapeHTML(
-                                        category
-                                    )}
-                                </span>
-
-                                <strong>
-                                    ${formatCurrency(
-                                        total
-                                    )}
-                                </strong>
-
-                            </div>
-
-
-                            <div class="progress">
-
-                                <div
-                                    class="progress-bar"
-                                    style="width:${percentage}%">
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    `;
-                }
-            )
+                </div>
+            `)
             .join("");
 }
 
 
-/* =====================================================
+/* =========================================================
+   ECONOMIA
+========================================================= */
+
+function calculateSavings() {
+
+    return groupQuotes(
+        quotes
+    ).reduce(
+        (sum, group) =>
+            sum +
+            Math.max(
+                0,
+                Number(
+                    group.at(-1)?.price ||
+                    0
+                ) -
+                Number(
+                    group[0]?.price ||
+                    0
+                )
+            ),
+        0
+    );
+}
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+function updateDashboard() {
+
+    if (
+        appData.monthlyBalance > 0
+    ) {
+
+        fillMoneyInput(
+            $("salaryInput"),
+            appData.monthlyBalance
+        );
+
+    } else {
+
+        $("salaryInput").value = "";
+    }
+
+
+    $("totalExpenses").textContent =
+        money(
+            appData.monthlyBalance
+        );
+
+
+    $("monthlyExpenses").textContent =
+        money(
+            getMonthlyExpenses()
+        );
+
+
+    $("quoteCount").textContent =
+        String(
+            quotes.length
+        );
+
+
+    $("possibleSaving").textContent =
+        money(
+            calculateSavings()
+        );
+
+
+    updateBudgetUI();
+
+    renderDashboardQuotes();
+
+    renderRecentExpenses();
+}
+
+
+/* =========================================================
    CATEGORIAS
-===================================================== */
+========================================================= */
 
 function renderCategories() {
 
     const container =
-        document.getElementById(
-            "categoriesContainer"
-        );
-
-
-    if (!container) {
-        return;
-    }
+        $("categoriesContainer");
 
 
     container.innerHTML =
-        Object.entries(
-            categories
-        )
+        Object.entries(categories)
             .map(
-                (
-                    [
-                        category,
-                        subcategories
-                    ]
-                ) => `
-
-                    <div class="category-card">
+                ([category, subcategories]) => `
+                    <article class="category-card">
 
                         <h3>
                             ${escapeHTML(
@@ -3535,138 +2035,235 @@ function renderCategories() {
                             )}
                         </h3>
 
-
                         <div class="subcategory-list">
 
                             ${subcategories
                                 .map(
                                     subcategory => `
-
                                         <span class="subcategory">
                                             ${escapeHTML(
                                                 subcategory
                                             )}
                                         </span>
-
                                     `
                                 )
                                 .join("")}
 
                         </div>
 
-                    </div>
-
+                    </article>
                 `
             )
             .join("");
 }
 
 
-/* =====================================================
-   FILTROS
-===================================================== */
+/* =========================================================
+   TOAST
+========================================================= */
 
-function setupFilters() {
+function showToast(message) {
 
-    document
-        .getElementById(
-            "expenseSearch"
-        )
-        ?.addEventListener(
-            "input",
-            renderExpenses
-        );
+    const toast =
+        $("toast");
+
+    $("toastMessage")
+        .textContent = message;
 
 
-    document
-        .getElementById(
-            "expenseCategoryFilter"
-        )
-        ?.addEventListener(
-            "change",
-            renderExpenses
-        );
+    toast.classList.add(
+        "show"
+    );
 
 
-    document
-        .getElementById(
-            "expenseMonthFilter"
-        )
-        ?.addEventListener(
-            "change",
-            renderExpenses
-        );
+    clearTimeout(
+        toastTimer
+    );
 
 
-    document
-        .getElementById(
-            "quoteSearch"
-        )
-        ?.addEventListener(
-            "input",
-            renderQuotes
-        );
-
-
-    document
-        .getElementById(
-            "quoteCategoryFilter"
-        )
-        ?.addEventListener(
-            "change",
-            renderQuotes
+    toastTimer =
+        setTimeout(
+            () =>
+                toast.classList.remove(
+                    "show"
+                ),
+            2400
         );
 }
 
 
-/* =====================================================
-   MODAIS
-===================================================== */
+/* =========================================================
+   EVENTOS
+========================================================= */
 
-function setupModalEvents() {
+function setupEvents() {
 
-    const expenseModal =
-        document.getElementById(
-            "expenseModal"
+    setupMobile();
+
+    setupCategorySelects();
+
+    setupMoneyMasks();
+
+    loadTheme();
+
+
+    $("themeToggle")
+        .addEventListener(
+            "click",
+            toggleTheme
         );
 
 
-    const quoteModal =
-        document.getElementById(
-            "quoteModal"
+    $("expenseForm")
+        .addEventListener(
+            "submit",
+            saveExpense
         );
 
 
-    expenseModal?.addEventListener(
-        "click",
-        event => {
+    $("quoteForm")
+        .addEventListener(
+            "submit",
+            saveQuote
+        );
 
-            if (
-                event.target ===
-                expenseModal
-            ) {
 
-                closeExpenseModal();
+    $("expenseSearch")
+        .addEventListener(
+            "input",
+            renderExpenses
+        );
+
+
+    $("expenseCategoryFilter")
+        .addEventListener(
+            "change",
+            renderExpenses
+        );
+
+
+    $("quoteSearch")
+        .addEventListener(
+            "input",
+            renderQuotes
+        );
+
+
+    $("quoteCategoryFilter")
+        .addEventListener(
+            "change",
+            renderQuotes
+        );
+
+
+    $("expensesTableBody")
+        .addEventListener(
+            "click",
+            event => {
+
+                const edit =
+                    event.target.closest(
+                        "[data-edit-expense]"
+                    );
+
+                const del =
+                    event.target.closest(
+                        "[data-delete-expense]"
+                    );
+
+
+                if (edit) {
+                    editExpense(
+                        edit.dataset.editExpense
+                    );
+                }
+
+
+                if (del) {
+                    deleteExpense(
+                        del.dataset.deleteExpense
+                    );
+                }
             }
-
-        }
-    );
+        );
 
 
-    quoteModal?.addEventListener(
-        "click",
-        event => {
+    $("quotesContainer")
+        .addEventListener(
+            "click",
+            event => {
 
-            if (
-                event.target ===
-                quoteModal
-            ) {
+                const details =
+                    event.target.closest(
+                        "[data-details]"
+                    );
 
-                closeQuoteModal();
+                const edit =
+                    event.target.closest(
+                        "[data-edit-quote]"
+                    );
+
+                const del =
+                    event.target.closest(
+                        "[data-delete-quote]"
+                    );
+
+
+                if (details) {
+
+                    const box =
+                        $(
+                            "details-" +
+                            details.dataset.details
+                        );
+
+                    if (box) {
+                        box.classList.toggle(
+                            "open"
+                        );
+                    }
+                }
+
+
+                if (edit) {
+
+                    editQuote(
+                        edit.dataset.editQuote
+                    );
+                }
+
+
+                if (del) {
+
+                    deleteQuote(
+                        del.dataset.deleteQuote
+                    );
+                }
             }
+        );
 
-        }
-    );
+
+    document
+        .querySelectorAll(
+            ".modal-overlay"
+        )
+        .forEach(modal => {
+
+            modal.addEventListener(
+                "click",
+                event => {
+
+                    if (
+                        event.target ===
+                        modal
+                    ) {
+                        closeModal(
+                            modal.id
+                        );
+                    }
+                }
+            );
+        });
 
 
     document.addEventListener(
@@ -3678,340 +2275,44 @@ function setupModalEvents() {
                 "Escape"
             ) {
 
-                closeExpenseModal();
-
-                closeQuoteModal();
-            }
-
-        }
-    );
-}
-
-
-/* =====================================================
-   MÁSCARA — DESPESAS E COTAÇÕES
-===================================================== */
-
-function moneyMask(
-    input
-) {
-
-    if (!input) {
-        return;
-    }
-
-
-    const digits =
-        String(
-            input.value || ""
-        )
-            .replace(
-                /\D/g,
-                ""
-            );
-
-
-    if (!digits) {
-
-        input.value =
-            "";
-
-        return;
-    }
-
-
-    input.value =
-        new Intl.NumberFormat(
-            "pt-BR",
-            {
-                style:
-                    "currency",
-
-                currency:
-                    "BRL"
-            }
-        )
-            .format(
-                parseInt(
-                    digits,
-                    10
-                ) / 100
-            );
-}
-
-
-/* =====================================================
-   PARSE DE DINHEIRO
-===================================================== */
-
-function parseMoney(
-    value
-) {
-
-    if (!value) {
-        return 0;
-    }
-
-
-    let text =
-        String(
-            value
-        )
-            .replace(
-                /[^\d,.-]/g,
-                ""
-            );
-
-
-    if (
-        text.includes(",")
-    ) {
-
-        text =
-            text.replace(
-                /\./g,
-                ""
-            );
-
-
-        text =
-            text.replace(
-                ",",
-                "."
-            );
-    }
-
-
-    const result =
-        parseFloat(
-            text
-        );
-
-
-    return Number.isNaN(
-        result
-    )
-        ? 0
-        : result;
-}
-
-
-/* =====================================================
-   FORMATAR MOEDA
-===================================================== */
-
-function formatCurrency(
-    value
-) {
-
-    return new Intl.NumberFormat(
-        "pt-BR",
-        {
-            style:
-                "currency",
-
-            currency:
-                "BRL"
-        }
-    )
-        .format(
-            Number(
-                value
-            ) || 0
-        );
-}
-
-
-/* =====================================================
-   DATA
-===================================================== */
-
-function getTodayDate() {
-
-    const date =
-        new Date();
-
-
-    return `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-    ).padStart(
-        2,
-        "0"
-    )}-${String(
-        date.getDate()
-    ).padStart(
-        2,
-        "0"
-    )}`;
-}
-
-
-function getCurrentMonth() {
-
-    const date =
-        new Date();
-
-
-    return `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-    ).padStart(
-        2,
-        "0"
-    )}`;
-}
-
-
-function formatDate(
-    dateString
-) {
-
-    if (!dateString) {
-        return "-";
-    }
-
-
-    const parts =
-        String(
-            dateString
-        ).split("-");
-
-
-    if (
-        parts.length === 3
-    ) {
-
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-
-
-    return String(
-        dateString
-    );
-}
-
-
-/* =====================================================
-   HELPERS
-===================================================== */
-
-function setText(
-    id,
-    value
-) {
-
-    const element =
-        document.getElementById(
-            id
-        );
-
-
-    if (element) {
-
-        element.textContent =
-            value;
-    }
-}
-
-
-function createId() {
-
-    return `${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 9)}`;
-}
-
-
-function escapeHTML(
-    value
-) {
-
-    return String(
-        value ?? ""
-    )
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-        .replace(
-            /</g,
-            "&lt;"
-        )
-        .replace(
-            />/g,
-            "&gt;"
-        )
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-}
-
-
-/* =====================================================
-   TOAST
-===================================================== */
-
-let toastTimeout;
-
-
-function showToast(
-    message
-) {
-
-    const toast =
-        document.getElementById(
-            "toast"
-        );
-
-
-    const toastMessage =
-        document.getElementById(
-            "toastMessage"
-        );
-
-
-    if (
-        !toast ||
-        !toastMessage
-    ) {
-
-        return;
-    }
-
-
-    toastMessage.textContent =
-        message;
-
-
-    toast.classList.add(
-        "show"
-    );
-
-
-    clearTimeout(
-        toastTimeout
-    );
-
-
-    toastTimeout =
-        setTimeout(
-            () => {
-
-                toast.classList.remove(
-                    "show"
+                closeModal(
+                    "expenseModal"
                 );
 
-            },
-            2500
-        );
+                closeModal(
+                    "quoteModal"
+                );
+            }
+        }
+    );
 }
 
 
-window.clearSalary = clearSalary;
-window.setBudgetMode = setBudgetMode;
-window.setBudgetPercentage = setBudgetPercentage;
-window.saveSalary = saveSalary;
+/* =========================================================
+   INICIALIZAÇÃO
+========================================================= */
+
+function init() {
+
+    loadData();
+
+    loadQuotes();
+
+    setupEvents();
+
+    setupExpenseFilters();
+
+    renderExpenses();
+
+    renderQuotes();
+
+    renderCategories();
+
+    updateDashboard();
+}
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    init
+);
