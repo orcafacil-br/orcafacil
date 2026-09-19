@@ -195,8 +195,13 @@
                             type="text"
                             id="salaryInput"
                             inputmode="numeric"
+                            autocomplete="off"
                             placeholder="R$ 0,00"
+                            aria-describedby="salaryHint"
                         >
+                        <small id="salaryHint" class="salary-hint">
+                            Digite os centavos normalmente. Ex.: 5000 → R$ 50,00
+                        </small>
 
                     </div>
 
