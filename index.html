@@ -5,127 +5,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>OrçaFácil — Controle financeiro pessoal</title>
+    <title>OrçaFácil — Controle financeiro</title>
 
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
+<div class="app">
+
     <!-- =====================================================
          SIDEBAR
     ====================================================== -->
 
-    <aside class="sidebar">
-
-        <!-- IDENTIDADE DO ORÇAFÁCIL -->
+    <aside class="sidebar" id="sidebar">
 
         <div class="brand">
 
             <div class="brand-icon">
-                ₿
+                OF
             </div>
 
             <div>
-                <h1>OrçaFácil</h1>
-
-                <span>
-                    Finanças pessoais
-                </span>
+                <strong>OrçaFácil</strong>
+                <span>Finanças pessoais</span>
             </div>
 
         </div>
 
 
-        <!-- MENU PRINCIPAL -->
-
-        <nav class="menu">
+        <nav class="sidebar-nav">
 
             <button
                 class="menu-item active"
-                data-page="dashboard">
+                data-page="dashboard"
+                type="button">
 
-                <span>🏠</span>
-
-                <span>
-                    Dashboard
-                </span>
+                <span class="menu-icon">⌂</span>
+                <span>Dashboard</span>
 
             </button>
 
 
             <button
                 class="menu-item"
-                data-page="despesas">
+                data-page="despesas"
+                type="button">
 
-                <span>💸</span>
-
-                <span>
-                    Despesas
-                </span>
+                <span class="menu-icon">↘</span>
+                <span>Despesas</span>
 
             </button>
 
 
             <button
                 class="menu-item"
-                data-page="cotacoes">
+                data-page="cotacoes"
+                type="button">
 
-                <span>🛒</span>
-
-                <span>
-                    Cotações
-                </span>
+                <span class="menu-icon">◫</span>
+                <span>Cotações</span>
 
             </button>
 
 
             <button
                 class="menu-item"
-                data-page="categorias">
+                data-page="categorias"
+                type="button">
 
-                <span>🗂️</span>
-
-                <span>
-                    Categorias
-                </span>
+                <span class="menu-icon">▦</span>
+                <span>Categorias</span>
 
             </button>
 
         </nav>
 
 
-        <!-- PARTE INFERIOR -->
-
-        <div class="sidebar-bottom">
-
-            <!-- TEMA -->
+        <div class="sidebar-footer">
 
             <button
-                class="theme-button"
-                id="themeToggle">
+                class="theme-toggle"
+                id="themeToggle"
+                type="button">
 
-                <span id="themeIcon">
-                    🌙
-                </span>
-
-                <span id="themeText">
-                    Modo escuro
-                </span>
+                <span id="themeIcon">🌙</span>
+                <span id="themeText">Modo escuro</span>
 
             </button>
 
 
-            <!-- RODAPÉ -->
+            <div class="sidebar-version">
 
-            <div class="sidebar-footer">
-
-                <small>
-                    OrçaFácil
-                </small>
+                OrçaFácil
 
                 <span>
-                    Controle financeiro simples
+                    Controle financeiro pessoal
                 </span>
 
             </div>
@@ -143,33 +118,42 @@
 
 
         <!-- =================================================
-             HEADER MOBILE
+             TOPBAR
         ================================================== -->
 
-        <header class="mobile-header">
-
-            <div class="mobile-brand">
-
-                <div class="brand-icon">
-                    ₿
-                </div>
-
-                <strong>
-                    OrçaFácil
-                </strong>
-
-            </div>
-
+        <header class="topbar">
 
             <button
+                class="mobile-menu-button"
                 id="mobileMenuButton"
-                class="mobile-menu-button">
+                type="button"
+                aria-label="Abrir menu">
 
                 ☰
 
             </button>
 
+
+            <div class="topbar-title">
+
+                <span id="topbarSection">
+                    Visão geral
+                </span>
+
+            </div>
+
+
+            <button
+                class="topbar-action"
+                id="topbarExpenseButton"
+                type="button">
+
+                + Nova despesa
+
+            </button>
+
         </header>
+
 
 
         <!-- =================================================
@@ -177,23 +161,25 @@
         ================================================== -->
 
         <section
-            id="dashboard"
-            class="page active">
+            class="page active"
+            id="dashboard">
 
 
-            <!-- CABEÇALHO -->
-
-            <div class="page-header">
+            <div class="page-heading">
 
                 <div>
 
-                    <h2>
+                    <span class="eyebrow">
+                        VISÃO GERAL
+                    </span>
+
+                    <h1>
                         Dashboard
-                    </h2>
+                    </h1>
 
                     <p>
                         Tenha uma visão clara do seu dinheiro,
-                        dos seus gastos e do que ainda pode gastar.
+                        despesas e compras planejadas.
                     </p>
 
                 </div>
@@ -201,7 +187,8 @@
 
                 <button
                     class="primary-button"
-                    onclick="openExpenseModal()">
+                    id="dashboardExpenseButton"
+                    type="button">
 
                     + Nova despesa
 
@@ -210,170 +197,219 @@
             </div>
 
 
-            <!-- =================================================
-                 CARDS PRINCIPAIS
-            ================================================== -->
 
-            <div class="stats-grid">
-
-
-                <!-- SALDO -->
-
-                <div class="stat-card">
-
-                    <div class="stat-icon blue">
-                        💰
-                    </div>
-
-                    <div>
-
-                        <span>
-                            Saldo disponível
-                        </span>
-
-                        <strong id="totalExpenses">
-                            R$ 0,00
-                        </strong>
-
-                    </div>
-
-                </div>
-
-
-                <!-- DESPESAS -->
-
-                <div class="stat-card">
-
-                    <div class="stat-icon red">
-                        💸
-                    </div>
-
-                    <div>
-
-                        <span>
-                            Despesas este mês
-                        </span>
-
-                        <strong id="monthlyExpenses">
-                            R$ 0,00
-                        </strong>
-
-                    </div>
-
-                </div>
-
-
-                <!-- COTAÇÕES -->
-
-                <div class="stat-card">
-
-                    <div class="stat-icon green">
-                        🛒
-                    </div>
-
-                    <div>
-
-                        <span>
-                            Cotações
-                        </span>
-
-                        <strong id="quoteCount">
-                            0
-                        </strong>
-
-                    </div>
-
-                </div>
-
-
-                <!-- ECONOMIA -->
-
-                <div class="stat-card">
-
-                    <div class="stat-icon orange">
-                        📈
-                    </div>
-
-                    <div>
-
-                        <span>
-                            Economia possível
-                        </span>
-
-                        <strong id="possibleSaving">
-                            R$ 0,00
-                        </strong>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- =================================================
-                 PLANEJAMENTO FINANCEIRO
-            ================================================== -->
+            <!-- =============================================
+                 PLANEJAMENTO
+            ============================================== -->
 
             <section class="planning-card">
-
-
-                <!-- CABEÇALHO DO PLANEJAMENTO -->
 
                 <div class="planning-header">
 
                     <div>
 
                         <span class="section-label">
-                            PLANEJAMENTO FINANCEIRO
+                            PLANEJAMENTO DO MÊS
                         </span>
 
-                        <h3>
-                            Organize seu dinheiro antes de gastar
-                        </h3>
+                        <h2>
+                            Salário / saldo disponível
+                        </h2>
 
                         <p>
-                            O OrçaFácil calcula um teto de gastos
-                            recomendado com base no seu saldo.
+                            Informe quanto você tem disponível
+                            para administrar neste mês.
                         </p>
+
+                    </div>
+
+
+                    <div class="planning-icon">
+                        R$
+                    </div>
+
+                </div>
+
+
+                <!-- SALDO -->
+
+                <div class="salary-form">
+
+                    <div class="input-group salary-input">
+
+                        <label for="salaryInput">
+                            Valor disponível
+                        </label>
+
+
+                        <input
+                            id="salaryInput"
+                            type="text"
+                            inputmode="numeric"
+                            autocomplete="off"
+                            placeholder="R$ 0,00">
+
+
+                        <small
+                            id="salaryHint"
+                            class="salary-hint">
+
+                            Digite o valor disponível.
+
+                        </small>
+
+                    </div>
+
+
+                    <div class="salary-actions">
+
+                        <button
+                            class="primary-button salary-button"
+                            id="saveSalaryButton"
+                            type="button">
+
+                            Salvar saldo
+
+                        </button>
+
+
+                        <button
+                            class="secondary-button salary-clear-button"
+                            id="clearSalaryButton"
+                            type="button">
+
+                            Limpar saldo
+
+                        </button>
 
                     </div>
 
                 </div>
 
 
-                <!-- RECOMENDAÇÃO -->
 
-                <div
-                    class="planner-recommendation"
-                    id="plannerRecommendation">
+                <!-- =========================================
+                     TETO DE GASTOS
+                ========================================== -->
 
-                    <span class="planner-recommendation-icon">
-                        ✓
-                    </span>
+                <div class="budget-planner-controls">
 
-                    <div>
+                    <div class="planner-control-copy">
 
-                        <strong id="plannerRecommendationTitle">
-                            Plano recomendado
+                        <span class="section-label">
+                            TETO DE GASTOS
+                        </span>
+
+                        <strong>
+                            Quanto você pretende gastar este mês?
                         </strong>
 
-                        <p id="plannerRecommendationText">
-                            Informe seu saldo para o OrçaFácil
-                            calcular o teto de gastos.
+                        <p>
+                            O OrçaFácil calcula automaticamente
+                            uma meta para preservar parte do
+                            seu dinheiro. Você também pode
+                            escolher manualmente.
                         </p>
+
+                    </div>
+
+
+                    <div class="planner-control-actions">
+
+                        <div class="planner-mode">
+
+                            <button
+                                class="planner-mode-button active"
+                                id="autoPlanButton"
+                                type="button">
+
+                                Plano automático
+
+                            </button>
+
+
+                            <button
+                                class="planner-mode-button"
+                                id="manualPlanButton"
+                                type="button">
+
+                                Manual
+
+                            </button>
+
+                        </div>
+
+
+                        <div class="planner-percentage-control">
+
+                            <label for="budgetPercentage">
+                                Percentual de gasto
+                            </label>
+
+
+                            <select
+                                id="budgetPercentage"
+                                disabled>
+
+                                <option value="50">
+                                    50% — preservar 50%
+                                </option>
+
+                                <option value="60">
+                                    60% — preservar 40%
+                                </option>
+
+                                <option value="70" selected>
+                                    70% — preservar 30%
+                                </option>
+
+                                <option value="80">
+                                    80% — preservar 20%
+                                </option>
+
+                                <option value="90">
+                                    90% — preservar 10%
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="planner-recommendation"
+                        id="plannerRecommendation">
+
+                        <span class="planner-recommendation-icon">
+                            ✓
+                        </span>
+
+                        <div>
+
+                            <strong id="plannerRecommendationTitle">
+                                Plano recomendado
+                            </strong>
+
+                            <p id="plannerRecommendationText">
+                                Informe seu saldo para o OrçaFácil
+                                calcular o teto de gastos.
+                            </p>
+
+                        </div>
 
                     </div>
 
                 </div>
 
 
-                <!-- MÉTRICAS -->
+
+                <!-- =========================================
+                     MÉTRICAS DO PLANEJAMENTO
+                ========================================== -->
 
                 <div class="planning-metrics">
-
-
-                    <!-- TETO -->
 
                     <div class="planning-metric">
 
@@ -386,13 +422,11 @@
                         </strong>
 
                         <small id="dashboardBudgetLabel">
-                            limite recomendado para gastar
+                            limite definido para gastar
                         </small>
 
                     </div>
 
-
-                    <!-- DESPESAS -->
 
                     <div class="planning-metric">
 
@@ -411,8 +445,6 @@
                     </div>
 
 
-                    <!-- COMPRAS -->
-
                     <div class="planning-metric">
 
                         <span>
@@ -429,8 +461,6 @@
 
                     </div>
 
-
-                    <!-- RESERVA -->
 
                     <div class="planning-metric highlight">
 
@@ -451,7 +481,10 @@
                 </div>
 
 
-                <!-- STATUS DO ORÇAMENTO -->
+
+                <!-- =========================================
+                     STATUS DO ORÇAMENTO
+                ========================================== -->
 
                 <div class="budget-status">
 
@@ -481,13 +514,12 @@
                     </div>
 
 
-                    <!-- BARRA DE PROGRESSO -->
-
                     <div class="progress-track">
 
                         <div
                             class="progress-bar"
                             id="budgetProgress">
+
                         </div>
 
                     </div>
@@ -510,14 +542,12 @@
             </section>
 
 
+
             <!-- =================================================
-                 CARDS RESUMO
+                 RESUMO
             ================================================== -->
 
             <div class="summary-grid">
-
-
-                <!-- SALDO -->
 
                 <article class="summary-card">
 
@@ -531,7 +561,7 @@
                             Saldo disponível
                         </span>
 
-                        <strong id="summaryBalance">
+                        <strong id="totalExpenses">
                             R$ 0,00
                         </strong>
 
@@ -543,8 +573,6 @@
 
                 </article>
 
-
-                <!-- GASTOS -->
 
                 <article class="summary-card">
 
@@ -558,7 +586,7 @@
                             Gasto no mês
                         </span>
 
-                        <strong id="summarySpent">
+                        <strong id="monthlyExpenses">
                             R$ 0,00
                         </strong>
 
@@ -571,26 +599,24 @@
                 </article>
 
 
-                <!-- DISPONÍVEL -->
-
                 <article class="summary-card">
 
-                    <div class="summary-icon green">
-                        ✓
+                    <div class="summary-icon purple">
+                        ◫
                     </div>
 
                     <div class="summary-content">
 
                         <span>
-                            Disponível para gastar
+                            Cotações
                         </span>
 
-                        <strong id="summaryAvailable">
-                            R$ 0,00
+                        <strong id="quoteCount">
+                            0
                         </strong>
 
                         <small>
-                            após as despesas
+                            produtos cadastrados
                         </small>
 
                     </div>
@@ -598,26 +624,24 @@
                 </article>
 
 
-                <!-- ECONOMIA -->
-
                 <article class="summary-card">
 
-                    <div class="summary-icon orange">
-                        💰
+                    <div class="summary-icon green">
+                        ↓
                     </div>
 
                     <div class="summary-content">
 
                         <span>
-                            Destinado à economia
+                            Economia possível
                         </span>
 
-                        <strong id="summarySavings">
+                        <strong id="possibleSaving">
                             R$ 0,00
                         </strong>
 
                         <small>
-                            valor preservado
+                            comparando os preços
                         </small>
 
                     </div>
@@ -627,114 +651,180 @@
             </div>
 
 
+
             <!-- =================================================
-                 DASHBOARD GRID
+                 INDICADOR DE COMPRA
             ================================================== -->
 
-            <div class="dashboard-grid">
+            <section class="purchase-status-card">
+
+                <div
+                    class="purchase-status-icon neutral"
+                    id="purchaseStatusIcon">
+
+                    R$
+
+                </div>
 
 
-                <!-- ÚLTIMAS DESPESAS -->
+                <div class="purchase-status-content">
 
-                <div class="card">
+                    <span class="section-label">
+                        INDICADOR DE COMPRA
+                    </span>
+
+                    <h2 id="purchaseStatusTitle">
+                        Cadastre seu saldo
+                    </h2>
+
+                    <p id="purchaseStatusDescription">
+                        Depois de informar seu saldo e cadastrar
+                        despesas ou cotações, o OrçaFácil mostrará
+                        o impacto das compras no seu orçamento.
+                    </p>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 COLUNAS DO DASHBOARD
+            ================================================== -->
+
+            <div class="dashboard-columns">
+
+
+                <!-- COTAÇÕES -->
+
+                <section class="content-card quotes-dashboard-card">
 
                     <div class="card-header">
 
                         <div>
 
-                            <h3>
-                                Últimas despesas
-                            </h3>
+                            <span class="section-label">
+                                PLANEJAMENTO
+                            </span>
+
+                            <h2>
+                                Cotações recentes
+                            </h2>
 
                             <p>
-                                Seus lançamentos mais recentes.
+                                Veja as compras que você está planejando.
                             </p>
 
                         </div>
 
 
                         <button
-                            class="link-button"
-                            onclick="showPage('despesas')">
+                            class="text-button"
+                            id="goQuotesButton"
+                            type="button">
 
-                            Ver todas
+                            Ver todas →
 
                         </button>
 
                     </div>
 
 
-                    <div id="recentExpenses"></div>
+                    <div
+                        id="dashboardQuotes"
+                        class="dashboard-quotes">
+                    </div>
 
-                </div>
+
+                    <div
+                        id="dashboardQuotesEmpty"
+                        class="empty-state compact">
+
+                        <div class="empty-icon">
+                            ◫
+                        </div>
+
+                        <strong>
+                            Nenhuma cotação cadastrada
+                        </strong>
+
+                        <p>
+                            Suas cotações aparecerão aqui
+                            automaticamente.
+                        </p>
+
+                    </div>
+
+                </section>
 
 
-                <!-- RESUMO POR CATEGORIA -->
 
-                <div class="card">
+                <!-- DESPESAS RECENTES -->
+
+                <section class="content-card">
 
                     <div class="card-header">
 
                         <div>
 
-                            <h3>
-                                Resumo por categoria
-                            </h3>
+                            <span class="section-label">
+                                MOVIMENTAÇÕES
+                            </span>
+
+                            <h2>
+                                Despesas recentes
+                            </h2>
 
                             <p>
-                                Veja onde seu dinheiro está indo.
+                                Seus últimos gastos registrados.
                             </p>
 
                         </div>
 
+
+                        <button
+                            class="text-button"
+                            id="goExpensesButton"
+                            type="button">
+
+                            Ver todas →
+
+                        </button>
+
                     </div>
 
 
-                    <div id="categorySummary"></div>
+                    <div
+                        id="recentExpenses"
+                        class="recent-list">
+                    </div>
 
-                </div>
 
-            </div>
+                    <div
+                        id="recentExpensesEmpty"
+                        class="empty-state compact">
 
+                        <div class="empty-icon">
+                            ↘
+                        </div>
 
-            <!-- =================================================
-                 COTAÇÕES NO DASHBOARD
-            ================================================== -->
-
-            <div class="card dashboard-quotes-card">
-
-                <div class="card-header">
-
-                    <div>
-
-                        <h3>
-                            Cotações planejadas
-                        </h3>
+                        <strong>
+                            Nenhuma despesa registrada
+                        </strong>
 
                         <p>
-                            Veja compras que você está planejando
-                            e como elas afetam seu orçamento.
+                            Cadastre sua primeira despesa.
                         </p>
 
                     </div>
 
-
-                    <button
-                        class="link-button"
-                        onclick="showPage('cotacoes')">
-
-                        Ver cotações
-
-                    </button>
-
-                </div>
-
-
-                <div id="dashboardQuotes"></div>
+                </section>
 
             </div>
 
         </section>
+
 
 
         <!-- =================================================
@@ -742,20 +832,24 @@
         ================================================== -->
 
         <section
-            id="despesas"
-            class="page">
+            class="page"
+            id="despesas">
 
-
-            <div class="page-header">
+            <div class="page-heading">
 
                 <div>
 
-                    <h2>
+                    <span class="eyebrow">
+                        CONTROLE FINANCEIRO
+                    </span>
+
+                    <h1>
                         Despesas
-                    </h2>
+                    </h1>
 
                     <p>
-                        Controle tudo o que você efetivamente gastou.
+                        Registre e acompanhe tudo o que você
+                        efetivamente gastou.
                     </p>
 
                 </div>
@@ -763,7 +857,8 @@
 
                 <button
                     class="primary-button"
-                    onclick="openExpenseModal()">
+                    id="newExpenseButton"
+                    type="button">
 
                     + Nova despesa
 
@@ -772,49 +867,47 @@
             </div>
 
 
-            <!-- FILTROS -->
+            <section class="content-card">
 
-            <div class="filters-card">
+                <div class="filters">
 
-                <div class="search-box">
+                    <div class="search-box">
 
-                    <span>
-                        🔍
-                    </span>
+                        <span>
+                            ⌕
+                        </span>
 
-                    <input
-                        type="text"
-                        id="expenseSearch"
-                        placeholder="Pesquisar despesa..."
-                    >
+                        <input
+                            id="expenseSearch"
+                            type="text"
+                            placeholder="Buscar despesa...">
+
+                    </div>
+
+
+                    <select id="expenseCategoryFilter">
+
+                        <option value="">
+                            Todas as categorias
+                        </option>
+
+                    </select>
+
+
+                    <select id="expenseMonthFilter">
+
+                        <option value="">
+                            Todos os meses
+                        </option>
+
+                    </select>
 
                 </div>
 
 
-                <select id="expenseCategoryFilter">
-
-                    <option value="">
-                        Todas as categorias
-                    </option>
-
-                </select>
-
-
-                <input
-                    type="month"
-                    id="expenseMonthFilter"
-                >
-
-            </div>
-
-
-            <!-- TABELA -->
-
-            <div class="card table-card">
-
                 <div class="table-wrapper">
 
-                    <table>
+                    <table class="data-table">
 
                         <thead>
 
@@ -825,7 +918,7 @@
                                 </th>
 
                                 <th>
-                                    Produto / descrição
+                                    Descrição
                                 </th>
 
                                 <th>
@@ -857,29 +950,28 @@
                 </div>
 
 
-                <!-- ESTADO VAZIO -->
-
                 <div
                     id="expensesEmpty"
                     class="empty-state">
 
                     <div class="empty-icon">
-                        💸
+                        ↘
                     </div>
 
                     <strong>
-                        Nenhuma despesa cadastrada
+                        Nenhuma despesa encontrada
                     </strong>
 
                     <p>
-                        Comece adicionando sua primeira despesa.
+                        Comece cadastrando uma nova despesa.
                     </p>
 
                 </div>
 
-            </div>
+            </section>
 
         </section>
+
 
 
         <!-- =================================================
@@ -887,20 +979,24 @@
         ================================================== -->
 
         <section
-            id="cotacoes"
-            class="page">
+            class="page"
+            id="cotacoes">
 
-
-            <div class="page-header">
+            <div class="page-heading">
 
                 <div>
 
-                    <h2>
+                    <span class="eyebrow">
+                        COMPRAS PLANEJADAS
+                    </span>
+
+                    <h1>
                         Cotações
-                    </h2>
+                    </h1>
 
                     <p>
-                        Compare preços e descubra onde comprar mais barato.
+                        Compare preços antes de comprar e veja
+                        o impacto no seu orçamento.
                     </p>
 
                 </div>
@@ -908,7 +1004,8 @@
 
                 <button
                     class="primary-button"
-                    onclick="openQuoteModal()">
+                    id="newQuoteButton"
+                    type="button">
 
                     + Nova cotação
 
@@ -917,70 +1014,63 @@
             </div>
 
 
-            <!-- FILTROS -->
+            <section class="content-card">
 
-            <div class="filters-card">
+                <div class="filters">
 
-                <div class="search-box">
+                    <div class="search-box">
 
-                    <span>
-                        🔍
-                    </span>
+                        <span>
+                            ⌕
+                        </span>
 
-                    <input
-                        type="text"
-                        id="quoteSearch"
-                        placeholder="Pesquisar produto ou loja..."
-                    >
+                        <input
+                            id="quoteSearch"
+                            type="text"
+                            placeholder="Buscar produto ou loja...">
+
+                    </div>
+
+
+                    <select id="quoteCategoryFilter">
+
+                        <option value="">
+                            Todas as categorias
+                        </option>
+
+                    </select>
 
                 </div>
 
 
-                <select id="quoteCategoryFilter">
-
-                    <option value="">
-                        Todas as categorias
-                    </option>
-
-                </select>
-
-            </div>
+                <div
+                    id="quotesContainer"
+                    class="quotes-container">
+                </div>
 
 
-            <!-- COTAÇÕES -->
-
-            <div
-                id="quotesContainer"
-                class="quotes-container">
-            </div>
-
-
-            <!-- ESTADO VAZIO -->
-
-            <div
-                id="quotesEmpty"
-                class="card">
-
-                <div class="empty-state">
+                <div
+                    id="quotesEmpty"
+                    class="empty-state">
 
                     <div class="empty-icon">
-                        🛒
+                        ◫
                     </div>
 
                     <strong>
-                        Nenhuma cotação cadastrada
+                        Nenhuma cotação encontrada
                     </strong>
 
                     <p>
-                        Cadastre preços de diferentes lojas
-                        para comparar.
+                        Cadastre preços de produtos para comparar.
                     </p>
 
                 </div>
 
-            </div>
+            </section>
 
         </section>
+
 
 
         <!-- =================================================
@@ -988,20 +1078,24 @@
         ================================================== -->
 
         <section
-            id="categorias"
-            class="page">
+            class="page"
+            id="categorias">
 
-
-            <div class="page-header">
+            <div class="page-heading">
 
                 <div>
 
-                    <h2>
+                    <span class="eyebrow">
+                        ORGANIZAÇÃO
+                    </span>
+
+                    <h1>
                         Categorias
-                    </h2>
+                    </h1>
 
                     <p>
-                        Organize suas despesas e cotações.
+                        Consulte a estrutura utilizada para
+                        organizar suas despesas e cotações.
                     </p>
 
                 </div>
@@ -1012,170 +1106,154 @@
             <div
                 id="categoriesContainer"
                 class="categories-grid">
-
             </div>
 
         </section>
 
     </main>
 
-
-    <!-- =====================================================
-         MODAL — DESPESA
-    ====================================================== -->
-
-    <div
-        id="expenseModal"
-        class="modal-overlay">
+</div>
 
 
-        <div class="modal">
 
+<!-- =========================================================
+     MODAL — DESPESA
+========================================================= -->
 
-            <!-- CABEÇALHO -->
+<div
+    class="modal-overlay"
+    id="expenseModal"
+    hidden>
 
-            <div class="modal-header">
+    <div class="modal">
 
-                <div>
+        <div class="modal-header">
 
-                    <h2 id="expenseModalTitle">
-                        Nova despesa
-                    </h2>
+            <div>
 
-                    <p>
-                        Registre uma despesa realizada.
-                    </p>
+                <span class="section-label">
+                    MOVIMENTAÇÃO
+                </span>
 
-                </div>
-
-
-                <button
-                    class="modal-close"
-                    onclick="closeExpenseModal()">
-
-                    ×
-
-                </button>
+                <h2 id="expenseModalTitle">
+                    Nova despesa
+                </h2>
 
             </div>
 
 
-            <!-- FORMULÁRIO -->
+            <button
+                class="modal-close"
+                id="closeExpenseButton"
+                type="button"
+                aria-label="Fechar">
 
-            <form id="expenseForm">
+                ×
+
+            </button>
+
+        </div>
 
 
-                <input
-                    type="hidden"
-                    id="expenseId"
-                >
+        <form id="expenseForm">
+
+            <input
+                type="hidden"
+                id="expenseId">
 
 
-                <!-- DESCRIÇÃO -->
+            <div class="form-grid">
 
-                <div class="form-group">
+
+                <div class="input-group full">
 
                     <label for="expenseDescription">
-                        Produto / descrição
+                        Descrição
                     </label>
 
                     <input
-                        type="text"
                         id="expenseDescription"
-                        placeholder="Ex.: Arroz 5kg"
-                        required
-                    >
+                        type="text"
+                        placeholder="Ex.: Compra do supermercado"
+                        required>
 
                 </div>
 
 
-                <!-- CATEGORIA -->
 
-                <div class="form-row">
+                <div class="input-group">
 
+                    <label for="expenseCategory">
+                        Categoria
+                    </label>
 
-                    <div class="form-group">
+                    <select
+                        id="expenseCategory"
+                        required>
 
-                        <label for="expenseCategory">
-                            Categoria
-                        </label>
+                        <option value="">
+                            Selecione
+                        </option>
 
-                        <select
-                            id="expenseCategory"
-                            required>
-
-                            <option value="">
-                                Selecione
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                    <!-- SUBCATEGORIA -->
-
-                    <div class="form-group">
-
-                        <label for="expenseSubcategory">
-                            Subcategoria
-                        </label>
-
-                        <select
-                            id="expenseSubcategory"
-                            required>
-
-                            <option value="">
-                                Selecione
-                            </option>
-
-                        </select>
-
-                    </div>
+                    </select>
 
                 </div>
 
 
-                <!-- VALOR -->
 
-                <div class="form-group">
+                <div class="input-group">
+
+                    <label for="expenseSubcategory">
+                        Subcategoria
+                    </label>
+
+                    <select
+                        id="expenseSubcategory"
+                        required>
+
+                        <option value="">
+                            Selecione primeiro a categoria
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+
+                <div class="input-group">
 
                     <label for="expenseAmount">
                         Valor
                     </label>
 
                     <input
-                        type="text"
                         id="expenseAmount"
+                        type="text"
                         inputmode="numeric"
-                        autocomplete="off"
                         placeholder="R$ 0,00"
-                        required
-                    >
+                        required>
 
                 </div>
 
 
-                <!-- DATA -->
 
-                <div class="form-group">
+                <div class="input-group">
 
                     <label for="expenseDate">
                         Data
                     </label>
 
                     <input
-                        type="date"
                         id="expenseDate"
-                        required
-                    >
+                        type="date"
+                        required>
 
                 </div>
 
 
-                <!-- OBSERVAÇÃO -->
 
-                <div class="form-group">
+                <div class="input-group full">
 
                     <label for="expenseNotes">
                         Observação
@@ -1184,214 +1262,199 @@
                     <textarea
                         id="expenseNotes"
                         rows="3"
-                        placeholder="Opcional"></textarea>
+                        placeholder="Opcional">
+                    </textarea>
 
                 </div>
 
-
-                <!-- AÇÕES -->
-
-                <div class="modal-actions">
-
-                    <button
-                        type="button"
-                        class="secondary-button"
-                        onclick="closeExpenseModal()">
-
-                        Cancelar
-
-                    </button>
+            </div>
 
 
-                    <button
-                        type="submit"
-                        class="primary-button">
 
-                        Salvar despesa
+            <div class="modal-actions">
 
-                    </button>
+                <button
+                    class="secondary-button"
+                    id="cancelExpenseButton"
+                    type="button">
 
-                </div>
+                    Cancelar
 
-            </form>
-
-        </div>
-
-    </div>
-
-
-    <!-- =====================================================
-         MODAL — COTAÇÃO
-    ====================================================== -->
-
-    <div
-        id="quoteModal"
-        class="modal-overlay">
-
-
-        <div class="modal">
-
-
-            <!-- CABEÇALHO -->
-
-            <div class="modal-header">
-
-                <div>
-
-                    <h2 id="quoteModalTitle">
-                        Nova cotação
-                    </h2>
-
-                    <p>
-                        Registre o preço de um produto em uma loja.
-                    </p>
-
-                </div>
+                </button>
 
 
                 <button
-                    class="modal-close"
-                    onclick="closeQuoteModal()">
+                    class="primary-button"
+                    type="submit">
 
-                    ×
+                    Salvar despesa
 
                 </button>
 
             </div>
 
+        </form>
 
-            <!-- FORMULÁRIO -->
+    </div>
 
-            <form id="quoteForm">
-
-
-                <input
-                    type="hidden"
-                    id="quoteId"
-                >
+</div>
 
 
-                <!-- PRODUTO -->
 
-                <div class="form-group">
+<!-- =========================================================
+     MODAL — COTAÇÃO
+========================================================= -->
+
+<div
+    class="modal-overlay"
+    id="quoteModal"
+    hidden>
+
+    <div class="modal">
+
+        <div class="modal-header">
+
+            <div>
+
+                <span class="section-label">
+                    COMPRA PLANEJADA
+                </span>
+
+                <h2 id="quoteModalTitle">
+                    Nova cotação
+                </h2>
+
+            </div>
+
+
+            <button
+                class="modal-close"
+                id="closeQuoteButton"
+                type="button"
+                aria-label="Fechar">
+
+                ×
+
+            </button>
+
+        </div>
+
+
+        <form id="quoteForm">
+
+            <input
+                type="hidden"
+                id="quoteId">
+
+
+            <div class="form-grid">
+
+
+                <div class="input-group full">
 
                     <label for="quoteProduct">
                         Produto
                     </label>
 
                     <input
-                        type="text"
                         id="quoteProduct"
+                        type="text"
                         placeholder="Ex.: Arroz 5kg"
-                        required
-                    >
+                        required>
 
                 </div>
 
 
-                <!-- CATEGORIA / SUBCATEGORIA -->
 
-                <div class="form-row">
+                <div class="input-group">
 
+                    <label for="quoteCategory">
+                        Categoria
+                    </label>
 
-                    <div class="form-group">
+                    <select
+                        id="quoteCategory"
+                        required>
 
-                        <label for="quoteCategory">
-                            Categoria
-                        </label>
+                        <option value="">
+                            Selecione
+                        </option>
 
-                        <select
-                            id="quoteCategory"
-                            required>
-
-                            <option value="">
-                                Selecione
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                    <div class="form-group">
-
-                        <label for="quoteSubcategory">
-                            Subcategoria
-                        </label>
-
-                        <select
-                            id="quoteSubcategory"
-                            required>
-
-                            <option value="">
-                                Selecione
-                            </option>
-
-                        </select>
-
-                    </div>
+                    </select>
 
                 </div>
 
 
-                <!-- LOJA -->
 
-                <div class="form-group">
+                <div class="input-group">
+
+                    <label for="quoteSubcategory">
+                        Subcategoria
+                    </label>
+
+                    <select
+                        id="quoteSubcategory"
+                        required>
+
+                        <option value="">
+                            Selecione primeiro a categoria
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+
+                <div class="input-group">
 
                     <label for="quoteStore">
                         Loja
                     </label>
 
                     <input
-                        type="text"
                         id="quoteStore"
-                        placeholder="Ex.: Assaí"
-                        required
-                    >
+                        type="text"
+                        placeholder="Ex.: Carrefour"
+                        required>
 
                 </div>
 
 
-                <!-- PREÇO -->
 
-                <div class="form-group">
+                <div class="input-group">
 
                     <label for="quotePrice">
                         Preço
                     </label>
 
                     <input
-                        type="text"
                         id="quotePrice"
+                        type="text"
                         inputmode="numeric"
-                        autocomplete="off"
                         placeholder="R$ 0,00"
-                        required
-                    >
+                        required>
 
                 </div>
 
 
-                <!-- DATA -->
 
-                <div class="form-group">
+                <div class="input-group">
 
                     <label for="quoteDate">
-                        Data da cotação
+                        Data
                     </label>
 
                     <input
-                        type="date"
                         id="quoteDate"
-                        required
-                    >
+                        type="date"
+                        required>
 
                 </div>
 
 
-                <!-- OBSERVAÇÃO -->
 
-                <div class="form-group">
+                <div class="input-group full">
 
                     <label for="quoteNotes">
                         Observação
@@ -1399,62 +1462,74 @@
 
                     <textarea
                         id="quoteNotes"
+                        class="quote-notes"
                         rows="3"
-                        placeholder="Opcional"></textarea>
+                        placeholder="Opcional">
+                    </textarea>
 
                 </div>
 
-
-                <!-- AÇÕES -->
-
-                <div class="modal-actions">
-
-                    <button
-                        type="button"
-                        class="secondary-button"
-                        onclick="closeQuoteModal()">
-
-                        Cancelar
-
-                    </button>
+            </div>
 
 
-                    <button
-                        type="submit"
-                        class="primary-button">
 
-                        Salvar cotação
+            <div class="modal-actions">
 
-                    </button>
+                <button
+                    class="secondary-button"
+                    id="cancelQuoteButton"
+                    type="button">
 
-                </div>
+                    Cancelar
 
-            </form>
-
-        </div>
-
-    </div>
+                </button>
 
 
-    <!-- =====================================================
-         TOAST
-    ====================================================== -->
+                <button
+                    class="primary-button"
+                    type="submit">
 
-    <div
-        id="toast"
-        class="toast">
+                    Salvar cotação
 
-        <span id="toastMessage"></span>
+                </button>
+
+            </div>
+
+        </form>
 
     </div>
 
+</div>
 
-    <!-- =====================================================
-         JAVASCRIPT
-    ====================================================== -->
 
-    <script src="app.js"></script>
+
+<!-- =========================================================
+     TOAST
+========================================================= -->
+
+<div
+    class="toast"
+    id="toast"
+    role="status"
+    aria-live="polite">
+
+    <span id="toastIcon">
+        ✓
+    </span>
+
+    <span id="toastMessage">
+        Operação realizada.
+    </span>
+
+</div>
+
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+<script src="app.js"></script>
 
 </body>
-
 </html>
