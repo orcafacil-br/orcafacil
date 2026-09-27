@@ -12,28 +12,28 @@
     --font-heading-weight: 700;
     --font-body-weight: 400;
 
-    /* === Cores principais — modo CLARO === */
-    --color-background: #f8fafc;
-    --color-foreground: #0f172a;
-    --color-card: #ffffff;
-    --color-card-foreground: #0f172a;
-    --color-popover: #ffffff;
-    --color-popover-foreground: #0f172a;
-    --color-primary: #2563eb;
+    /* === Theme-overridable tokens (19 tokens, oklch) === */
+    --color-background: #f4f3ec;
+    --color-foreground: #000000;
+    --color-card: #f6f6f1;
+    --color-card-foreground: #000000;
+    --color-popover: #f6f6f1;
+    --color-popover-foreground: #000000;
+    --color-primary: #000000;
     --color-primary-foreground: #ffffff;
-    --color-secondary: #f1f5f9;
-    --color-secondary-foreground: #1e293b;
-    --color-muted: #f1f5f9;
-    --color-muted-foreground: #64748b;
-    --color-accent: #eff6ff;
-    --color-accent-foreground: #1e40af;
+    --color-secondary: #e0e0d9;
+    --color-secondary-foreground: #000000;
+    --color-muted: #e0e0d9;
+    --color-muted-foreground: #626260;
+    --color-accent: #f6f6f1;
+    --color-accent-foreground: #313130;
     --color-destructive: oklch(62.8% 0.208 22.7);
     --color-destructive-foreground: oklch(100% 0 0);
-    --color-border: #cbd5e1;
-    --color-input: #cbd5e1;
-    --color-ring: #2563eb;
+    --color-border: #c5c5c1;
+    --color-input: #c5c5c1;
+    --color-ring: #000000;
 
-    /* === Template-specific palette scales === */
+    /* === Template-specific palette scales (NOT overridden by theme) === */
 
     /* Primary - Blue System */
     --primary-50: 210 100% 95%;
@@ -59,7 +59,7 @@
     --secondary-800: 330 81% 25%;
     --secondary-900: 330 81% 15%;
 
-    /* Success - Green System */
+    /* Success - Green System (status color — not themed) */
     --success: 142 76% 45%;
     --success-foreground: 0 0% 100%;
     --success-50: 142 76% 95%;
@@ -73,7 +73,7 @@
     --success-800: 142 76% 15%;
     --success-900: 142 76% 8%;
 
-    /* Warning - Orange System */
+    /* Warning - Orange System (status color — not themed) */
     --warning: 25 95% 55%;
     --warning-foreground: 0 0% 100%;
     --warning-50: 25 95% 95%;
@@ -87,7 +87,7 @@
     --warning-800: 25 95% 25%;
     --warning-900: 25 95% 15%;
 
-    /* Error - Red System */
+    /* Error - Red System (status color — not themed) */
     --error-50: 0 84% 95%;
     --error-100: 0 84% 85%;
     --error-200: 0 84% 75%;
@@ -127,16 +127,16 @@
     --card-hover: 220 13% 96%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, var(--color-primary), #1e40af);
-    --gradient-secondary: linear-gradient(135deg, var(--color-secondary), #cbd5e1);
+    --gradient-primary: linear-gradient(135deg, var(--color-primary), color-mix(in oklch, var(--color-primary) 70%, white));
+    --gradient-secondary: linear-gradient(135deg, var(--color-secondary), color-mix(in oklch, var(--color-secondary) 70%, white));
     --gradient-success: linear-gradient(135deg, hsl(142 69% 58%), hsl(142 69% 70%));
     --gradient-card: linear-gradient(135deg, var(--color-card), var(--color-muted));
 
     /* Shadows */
     --shadow-sm: 0 1px 2px hsl(220 13% 18% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(220 13% 18% / 0.08);
+    --shadow-md: 0 4px 6px -1px hsl(220 13% 18% / 0.1);
     --shadow-lg: 0 10px 15px -3px hsl(220 13% 18% / 0.1);
-    --shadow-primary: 0 4px 14px hsl(217 91% 60% / 0.25);
+    --shadow-primary: 0 4px 14px hsl(210 100% 56% / 0.25);
 
     /* Animation */
     --transition-all: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -144,51 +144,49 @@
 
     --radius: 8px;
 
-    /* Sidebar — CLARO: fundo branco, texto escuro */
-    --sidebar-background: #ffffff;
-    --sidebar-foreground: #0f172a;
+    /* Sidebar — derives from theme tokens */
+    --sidebar-background: var(--color-muted);
+    --sidebar-foreground: var(--color-foreground);
     --sidebar-primary: var(--color-primary);
     --sidebar-primary-foreground: var(--color-primary-foreground);
-    --sidebar-accent: #eff6ff;
-    --sidebar-accent-foreground: #1e40af;
-    --sidebar-border: #cbd5e1;
+    --sidebar-accent: var(--color-accent);
+    --sidebar-accent-foreground: var(--color-accent-foreground);
+    --sidebar-border: var(--color-border);
     --sidebar-ring: var(--color-ring);
   }
 
-  .dark {
-    --color-background: #0a0a0a;
-    --color-foreground: #fafafa;
-    --color-card: #141414;
-    --color-card-foreground: #fafafa;
-    --color-popover: #141414;
-    --color-popover-foreground: #fafafa;
-    --color-primary: #3b82f6;
-    --color-primary-foreground: #ffffff;
-    --color-secondary: #1f1f1f;
-    --color-secondary-foreground: #fafafa;
-    --color-muted: #1a1a1a;
+   .dark {
+    --color-background: #0f0f0f;
+    --color-foreground: #f5f5f5;
+    --color-card: #1a1a1a;
+    --color-card-foreground: #f5f5f5;
+    --color-popover: #1a1a1a;
+    --color-popover-foreground: #f5f5f5;
+    --color-primary: #ffffff;
+    --color-primary-foreground: #000000;
+    --color-secondary: #2a2a2a;
+    --color-secondary-foreground: #f5f5f5;
+    --color-muted: #262626;
     --color-muted-foreground: #a3a3a3;
-    --color-accent: #1e3a8a;
-    --color-accent-foreground: #dbeafe;
+    --color-accent: #262626;
+    --color-accent-foreground: #f5f5f5;
     --color-destructive: oklch(62.8% 0.208 22.7);
     --color-destructive-foreground: oklch(100% 0 0);
-    --color-border: #262626;
-    --color-input: #262626;
-    --color-ring: #3b82f6;
+    --color-border: #333333;
+    --color-input: #333333;
+    --color-ring: #ffffff;
 
-    --card-hover: #1f1f1f;
+    --card-hover: #262626;
 
-    /* Sidebar — ESCURO: fundo escuro, texto claro */
-    --sidebar-background: #0f0f0f;
-    --sidebar-foreground: #fafafa;
+    --sidebar-background: var(--color-muted);
+    --sidebar-foreground: var(--color-foreground);
     --sidebar-primary: var(--color-primary);
     --sidebar-primary-foreground: var(--color-primary-foreground);
-    --sidebar-accent: #1e3a8a;
-    --sidebar-accent-foreground: #dbeafe;
-    --sidebar-border: #262626;
+    --sidebar-accent: var(--color-accent);
+    --sidebar-accent-foreground: var(--color-accent-foreground);
+    --sidebar-border: var(--color-border);
     --sidebar-ring: var(--color-ring);
   }
-}
 
 @layer base {
   * {
@@ -259,240 +257,4 @@
   .bg-background-95 { background: color-mix(in oklch, var(--color-background) 95%, transparent); }
   .bg-background-60 { background: color-mix(in oklch, var(--color-background) 60%, transparent); }
   .text-foreground-50 { color: color-mix(in oklch, var(--color-foreground) 50%, transparent); }
-}
-
-/* ============================================================
-   OrçaFácil — Botões 3D, Cards de Vidro e Animações
-   ============================================================ */
-
-/* --- Fundo com bolhas azuis (blobs) --- */
-.animated-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.animated-bg::before,
-.animated-bg::after,
-.animated-bg > .blob {
-  content: "";
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(80px);
-  opacity: 0.4;
-}
-
-.animated-bg::before {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, #3b82f6, transparent 70%);
-  top: -100px;
-  left: -100px;
-  animation: blob 12s ease-in-out infinite;
-}
-
-.animated-bg::after {
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, #8b5cf6, transparent 70%);
-  bottom: -150px;
-  right: -150px;
-  animation: blob 16s ease-in-out infinite reverse;
-}
-
-.animated-bg > .blob {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, #06b6d4, transparent 70%);
-  top: 40%;
-  left: 50%;
-  animation: blob-slow 20s ease-in-out infinite;
-}
-
-.dark .animated-bg::before { opacity: 0.25; }
-.dark .animated-bg::after { opacity: 0.2; }
-.dark .animated-bg > .blob { opacity: 0.2; }
-
-:root:not(.dark) .animated-bg::before { opacity: 0.15; }
-:root:not(.dark) .animated-bg::after { opacity: 0.12; }
-:root:not(.dark) .animated-bg > .blob { opacity: 0.1; }
-
-/* --- Botões 3D --- */
-.btn-3d {
-  position: relative;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-style: preserve-3d;
-  box-shadow:
-    0 5px 0 -1px rgba(0, 0, 0, 0.18),
-    0 8px 12px -2px rgba(0, 0, 0, 0.12);
-}
-
-.btn-3d:hover {
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-  color: #ffffff !important;
-  transform: translateY(-3px) scale(1.02);
-  box-shadow:
-    0 8px 0 -1px rgba(0, 0, 0, 0.22),
-    0 12px 20px -4px rgba(37, 99, 235, 0.45),
-    0 0 30px -5px rgba(59, 130, 246, 0.5);
-  filter: brightness(1.08);
-}
-
-.btn-3d:active {
-  transform: translateY(2px) scale(0.99);
-  box-shadow:
-    0 2px 0 -1px rgba(0, 0, 0, 0.15),
-    0 3px 6px -1px rgba(37, 99, 235, 0.3);
-  transition: all 0.05s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Botões outline/secondary */
-.btn-3d-outline {
-  position: relative;
-  border: 2px solid var(--color-border);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 3px 0 -1px rgba(0, 0, 0, 0.1),
-    0 5px 10px -2px rgba(0, 0, 0, 0.06);
-}
-
-.btn-3d-outline:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
-  transform: translateY(-2px) scale(1.01);
-  box-shadow:
-    0 5px 0 -1px rgba(37, 99, 235, 0.18),
-    0 8px 16px -4px rgba(37, 99, 235, 0.3),
-    0 0 20px -5px rgba(59, 130, 246, 0.35);
-}
-
-.btn-3d-outline:active {
-  transform: translateY(2px) scale(0.99);
-  box-shadow:
-    0 1px 0 -1px rgba(37, 99, 235, 0.12),
-    0 2px 5px -1px rgba(37, 99, 235, 0.22);
-  transition: all 0.05s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* --- Cards 3D transparentes (glassmorphism) --- */
-.card-3d {
-  position: relative;
-  border-radius: 16px;
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-
-  /* ✅ Borda cinza-azulada ESCURA o suficiente pra ver no claro */
-  border: 1px solid rgba(15, 23, 42, 0.15);
-  border-top: 1px solid rgba(15, 23, 42, 0.1);
-
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
-    0 -1px 0 0 rgba(15, 23, 42, 0.04) inset,
-    0 10px 30px -10px rgba(15, 23, 42, 0.12),
-    0 2px 8px -2px rgba(15, 23, 42, 0.08);
-
-  transition: box-shadow 0.3s ease;
-}
-
-.dark .card-3d {
-  background: rgba(20, 20, 20, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
-    0 -1px 0 0 rgba(0, 0, 0, 0.3) inset,
-    0 10px 30px -10px rgba(0, 0, 0, 0.5),
-    0 2px 8px -2px rgba(0, 0, 0, 0.3);
-}
-
-.card-3d::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(37, 99, 235, 0.3),
-    transparent
-  );
-  pointer-events: none;
-}
-
-.dark .card-3d::before {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(59, 130, 246, 0.5),
-    transparent
-  );
-}
-
-/* --- Card de alerta (amarelo suave, não "mijo") --- */
-.card-3d-alerta {
-  position: relative;
-  border-radius: 16px;
-  padding: 1.5rem;
-  background: rgba(254, 243, 199, 0.7);  /* amber-100 */
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(251, 191, 36, 0.4);   /* amber-400 */
-  border-top: 1px solid rgba(251, 191, 36, 0.6);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.7) inset,
-    0 10px 30px -10px rgba(217, 119, 6, 0.15),
-    0 2px 8px -2px rgba(217, 119, 6, 0.08);
-}
-
-.dark .card-3d-alerta {
-  background: rgba(120, 53, 15, 0.25);  /* amber-900 com alpha */
-  border: 1px solid rgba(251, 191, 36, 0.2);
-  border-top: 1px solid rgba(251, 191, 36, 0.3);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
-    0 10px 30px -10px rgba(0, 0, 0, 0.5),
-    0 2px 8px -2px rgba(0, 0, 0, 0.3);
-}
-
-/* --- Fade in suave --- */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in-up {
-  animation: fadeInUp 0.4s ease-out;
-}
-
-/* --- Pulso suave --- */
-@keyframes pulse-soft {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.85;
-    transform: scale(1.03);
-  }
-}
-
-.pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
 }

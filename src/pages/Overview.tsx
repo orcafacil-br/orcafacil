@@ -1,551 +1,660 @@
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, ArrowUpRight, ArrowDownLeft, Send, Repeat, ShoppingCart, Plus, ExternalLink, CheckCircle, Clock, Bell, User, Check } from "lucide-react";
-import WalletIcon from "@/assets/wallet-icon.svg";
-import SellIcon from "@/assets/sell-icon.svg";
-import SendIcon from "@/assets/send-icon.svg";
-import ReceiveIcon from "@/assets/receive-icon.svg";
-import SwapIcon from "@/assets/swap-icon.svg";
-import { useFinancialMetrics, useRevenueSources, useExpenseCategories, useKPIs, formatCurrency, formatPercentage } from "@/hooks/useFinancialData";
-import { useRevenueProfitData } from "@/hooks/useRevenueProfitData";
-import { useRevenueDrillDown } from "@/hooks/useRevenueDrillDown";
-import { RevenueDrillDownTable } from "@/components/RevenueDrillDownTable";
-import { RevenueProfitChart } from "@/components/RevenueProfitChart";
-import { useState } from "react";
-import { useCurrencyConversion } from "@/hooks/useCurrencyConversion";
-import { useContacts } from "@/hooks/useContacts";
-import { ContactAvatar } from "@/components/ContactAvatar";
-import { ContactsDialog } from "@/components/ContactsDialog";
-import { NotificationSettingsDialog } from "@/components/NotificationSettingsDialog";
-import { toast } from "sonner";
-import { TimePeriodSelector, TimePeriod } from "@/components/TimePeriodSelector";
-import { usePeriodComparison } from "@/hooks/usePeriodComparison";
+import { Progress } from "@/components/ui/progress";
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Target,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ShoppingCart,
+  Home,
+  Car,
+  HeartPulse,
+  Gamepad2,
+  GraduationCap,
+  Wrench,
+  MoreHorizontal,
+  AlertTriangle,
+} from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Legend,
+} from "recharts";
+import { useFinanceStore } from "@/store/useFinanceStore";
+import {
+  calcularTeto,
+  calcularSemaforo,
+  type Despesa,
+} from "@/types/finance";
+import {
+  formatarMoeda,
+  formatarPercentual,
+  formatarDataCurta,
+  formatarMoedaCompacta,
+  corSemaforo,
+  labelSemaforo,
+  nomeMes,
+  mesAtual,
+} from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+// ------------------------------------------------------------
+// Mapa de ícones
+// ------------------------------------------------------------
+
+const ICONES: Record<string, React.ComponentType<{ className?: string }>> = {
+  ShoppingCart,
+  Wrench,
+  Home,
+  Car,
+  HeartPulse,
+  Gamepad2,
+  GraduationCap,
+  MoreHorizontal,
+};
+
+// ------------------------------------------------------------
+// Página
+// ------------------------------------------------------------
 
 export default function Overview() {
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('month');
-  const [filters] = useState<{ currency: string; dateRange?: { from?: Date; to?: Date } }>({ 
-    currency: "USD",
-    dateRange: undefined 
-  });
-  const { convertAmount, currencySymbol } = useCurrencyConversion(filters.currency);
-  const [contactsDialogOpen, setContactsDialogOpen] = useState(false);
-  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
-  const { contacts, isLoading: contactsLoading } = useContacts();
-  
-  // Drill-down state for Revenue/Profit chart
-  const [drillDownParams, setDrillDownParams] = useState<{
-    startDate: string;
-    endDate: string;
-  } | null>(null);
-  
-  const { data: drillDownData, isLoading: drillDownLoading } = useRevenueDrillDown(drillDownParams);
+  const { configuracao, receitas, despesas, categorias } = useFinanceStore();
 
-  const {
-    data: metrics,
-    isLoading: metricsLoading
-  } = useFinancialMetrics(filters.dateRange);
-  const {
-    data: revenueSources,
-    isLoading: revenueLoading
-  } = useRevenueSources();
-  const {
-    data: expenseCategories,
-    isLoading: expensesLoading
-  } = useExpenseCategories();
-  const {
-    data: kpis,
-    isLoading: kpisLoading
-  } = useKPIs();
-  const {
-    data: revenueProfitData,
-    isLoading: revenueProfitLoading
-  } = useRevenueProfitData(filters.dateRange);
-  
-  const {
-    data: periodComparison,
-    isLoading: comparisonLoading
-  } = usePeriodComparison(selectedPeriod);
+  // === Teto ===
+  const teto = calcularTeto(configuracao);
 
-  const formatWithCurrency = (amount: number) => {
-    const converted = convertAmount(amount);
-    return `${currencySymbol}${converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
+  // === Mês atual ===
+  const mesAtualStr = mesAtual();
 
-  // Helper function to get metric by type
-  const getMetric = (type: string) => {
-    return metrics?.find(m => m.metric_type === type);
-  };
+  const receitasMes = useMemo(
+    () => receitas.filter((r) => r.data.startsWith(mesAtualStr)),
+    [receitas, mesAtualStr]
+  );
 
-  // Helper function to get KPI by name
-  const getKPI = (name: string) => {
-    return kpis?.find(k => k.kpi_name === name);
-  };
-  
-  // Handle chart point click for drill-down
-  const handleChartPointClick = (dateKey: string) => {
-    // Determine the date range based on the dateKey format
-    let startDate: string;
-    let endDate: string;
-    
-    if (dateKey.length === 7) {
-      // Monthly format (YYYY-MM)
-      const [year, month] = dateKey.split('-');
-      const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-      startDate = `${year}-${month}-01`;
-      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-      endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
-    } else {
-      // Daily format (YYYY-MM-DD)
-      startDate = dateKey;
-      endDate = dateKey;
+  const despesasMes = useMemo(
+    () => despesas.filter((d) => d.data.startsWith(mesAtualStr)),
+    [despesas, mesAtualStr]
+  );
+
+  // === Totais ===
+  const totalReceitas = receitasMes.reduce((s, r) => s + r.valor, 0);
+  const totalDespesas = despesasMes.reduce((s, d) => s + d.valor, 0);
+  const saldo = totalReceitas - totalDespesas;
+
+  // === Semáforo ===
+  const percentualUsado = teto > 0 ? (totalDespesas / teto) * 100 : 0;
+  const status = calcularSemaforo(percentualUsado);
+  const cores = corSemaforo(status);
+  const restante = Math.max(teto - totalDespesas, 0);
+
+  // === Gastos por categoria ===
+  const gastosPorCategoria = useMemo(() => {
+    const mapa = new Map<string, number>();
+    despesasMes.forEach((d) => {
+      mapa.set(d.categoriaId, (mapa.get(d.categoriaId) || 0) + d.valor);
+    });
+    return Array.from(mapa.entries())
+      .map(([categoriaId, valor]) => {
+        const cat = categorias.find((c) => c.id === categoriaId);
+        return {
+          categoriaId,
+          nome: cat?.nome ?? "Outros",
+          icone: cat?.icone ?? "MoreHorizontal",
+          cor: cat?.cor ?? "#9B5DE5",
+          valor,
+          percentual: totalDespesas > 0 ? (valor / totalDespesas) * 100 : 0,
+        };
+      })
+      .sort((a, b) => b.valor - a.valor);
+  }, [despesasMes, categorias, totalDespesas]);
+
+  // === Dados do gráfico de rosca ===
+  const dadosRosca = useMemo(
+    () =>
+      gastosPorCategoria.map((g) => ({
+        name: g.nome,
+        value: g.valor,
+        color: g.cor,
+      })),
+    [gastosPorCategoria]
+  );
+
+  // === Últimos 6 meses (evolução) ===
+  const dadosEvolucao = useMemo(() => {
+    const meses: Array<{
+      mes: string;
+      label: string;
+      receitas: number;
+      despesas: number;
+    }> = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const data = new Date();
+      data.setDate(1);
+      data.setMonth(data.getMonth() - i);
+      const mesStr = `${data.getFullYear()}-${String(
+        data.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+      const receitasDoMes = receitas
+        .filter((r) => r.data.startsWith(mesStr))
+        .reduce((s, r) => s + r.valor, 0);
+      const despesasDoMes = despesas
+        .filter((d) => d.data.startsWith(mesStr))
+        .reduce((s, d) => s + d.valor, 0);
+
+      meses.push({
+        mes: mesStr,
+        label: nomeMes(mesStr).split(" ")[0],
+        receitas: receitasDoMes,
+        despesas: despesasDoMes,
+      });
     }
-    
-    setDrillDownParams({ startDate, endDate });
+
+    return meses;
+  }, [receitas, despesas]);
+
+  // === Últimas transações ===
+  const ultimasTransacoes = useMemo(() => {
+    const lista: Array<
+      | { tipo: "receita"; item: (typeof receitas)[0] }
+      | { tipo: "despesa"; item: Despesa }
+    > = [
+      ...receitas.map((r) => ({ tipo: "receita" as const, item: r })),
+      ...despesas.map((d) => ({ tipo: "despesa" as const, item: d })),
+    ];
+    return lista
+      .sort(
+        (a, b) =>
+          new Date(b.item.data).getTime() - new Date(a.item.data).getTime()
+      )
+      .slice(0, 5);
+  }, [receitas, despesas]);
+
+  // === Estado vazio ===
+  const semConfiguracao = configuracao.salario === 0;
+  const temDespesas = despesasMes.length > 0;
+  const temHistorico = dadosEvolucao.some(
+    (d) => d.receitas > 0 || d.despesas > 0
+  );
+
+  // === Tooltip customizado ===
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+          {label && <p className="font-medium text-sm mb-2">{label}</p>}
+          {payload.map((entry: any, index: number) => (
+            <p
+              key={index}
+              className="text-sm flex items-center gap-2"
+              style={{ color: entry.color }}
+            >
+              <span
+                className="w-2.5 h-2.5 rounded-sm"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="font-medium">{entry.name}:</span>
+              <span>{formatarMoeda(entry.value)}</span>
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
-  
-  const closeDrillDown = () => {
-    setDrillDownParams(null);
-  };
-  if (metricsLoading || revenueLoading || expensesLoading || kpisLoading || revenueProfitLoading || comparisonLoading) {
-    return <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading financial data...</p>
-        </div>
-      </div>;
-  }
-  
-  const formatGrowth = (growth: number | undefined) => {
-    if (growth === undefined || !isFinite(growth)) return "0.0%";
-    const sign = growth >= 0 ? "+" : "";
-    return `${sign}${growth.toFixed(1)}%`;
-  };
-  const revenue = getMetric('revenue');
-  const expenses = getMetric('expenses');
-  const profit = getMetric('profit');
-  const cashFlow = getMetric('cash_flow');
-  const activeCustomers = getKPI('Active Customers');
-  const totalOrders = getKPI('Total Orders');
-  const conversionRate = getKPI('Conversion Rate');
-  return <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
-      {/* Main Content */}
-      <div className="flex-1 space-y-4 md:space-y-6">
-        {/* Period Selector */}
-        <div className="flex justify-end">
-          <TimePeriodSelector 
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-          />
-        </div>
 
-        {/* Hero Card - Total Financial Assets */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-primary to-primary/80 rounded-xl md:rounded-2xl p-6 md:p-8 text-primary-foreground">
-          <div className="relative z-10">
-            <h2 className="text-base md:text-lg mb-2 opacity-90">Total Financial Assets</h2>
-            <div className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              {profit || revenue ? formatWithCurrency((profit?.amount || 0) + (revenue?.amount || 0)) : (
-                <Badge variant="secondary" className="text-lg px-4 py-2">No Data</Badge>
-              )}
-            </div>
-          </div>
-          {/* Decorative elements */}
-          <div className="absolute right-4 md:right-8 top-4 md:top-8 opacity-20">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-background rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 md:w-8 md:h-8" />
-            </div>
-          </div>
-          <div className="absolute right-8 md:right-16 bottom-4 md:bottom-8 opacity-10">
-            <div className="w-8 h-8 md:w-12 md:h-12 bg-background rounded-full" />
-          </div>
-        </div>
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Resumo de {nomeMes(mesAtualStr)}
+        </p>
+      </div>
 
-        {/* Key Metrics with Growth Indicators */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {/* Revenue */}
-          <Card className="p-4 md:p-6">
-            <div className="flex items-start justify-between mb-2">
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
-              </div>
-            </div>
-            <h3 className="text-xs md:text-sm text-muted-foreground mb-1">Revenue</h3>
-            <div className="text-xl md:text-2xl font-bold mb-2">
-              {periodComparison ? formatWithCurrency(periodComparison.current.revenue) : (
-                <Badge variant="secondary" className="text-xs">No Data</Badge>
-              )}
-            </div>
-            {periodComparison && (
-              <div className={`flex items-center gap-1 text-xs md:text-sm ${
-                periodComparison.growth.revenue >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {periodComparison.growth.revenue >= 0 ? (
-                  <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4" />
-                ) : (
-                  <ArrowDownLeft className="w-3 h-3 md:w-4 md:h-4" />
-                )}
-                <span className="font-medium">{formatGrowth(periodComparison.growth.revenue)}</span>
-                <span className="text-muted-foreground hidden sm:inline">vs last {selectedPeriod}</span>
-              </div>
-            )}
-          </Card>
-
-          {/* Expenses */}
-          <Card className="p-4 md:p-6">
-            <div className="flex items-start justify-between mb-2">
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <ArrowDownLeft className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
-              </div>
-            </div>
-            <h3 className="text-xs md:text-sm text-muted-foreground mb-1">Expenses</h3>
-            <div className="text-xl md:text-2xl font-bold mb-2">
-              {periodComparison ? formatWithCurrency(periodComparison.current.expenses) : (
-                <Badge variant="secondary" className="text-xs">No Data</Badge>
-              )}
-            </div>
-            {periodComparison && (
-              <div className={`flex items-center gap-1 text-xs md:text-sm ${
-                periodComparison.growth.expenses >= 0 ? 'text-red-600' : 'text-green-600'
-              }`}>
-                {periodComparison.growth.expenses >= 0 ? (
-                  <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4" />
-                ) : (
-                  <ArrowDownLeft className="w-3 h-3 md:w-4 md:h-4" />
-                )}
-                <span className="font-medium">{formatGrowth(periodComparison.growth.expenses)}</span>
-                <span className="text-muted-foreground hidden sm:inline">vs last {selectedPeriod}</span>
-              </div>
-            )}
-          </Card>
-
-          {/* Profit */}
-          <Card className="p-4 md:p-6">
-            <div className="flex items-start justify-between mb-2">
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-primary-light rounded-lg flex items-center justify-center">
-                <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-              </div>
-            </div>
-            <h3 className="text-xs md:text-sm text-muted-foreground mb-1">Profit</h3>
-            <div className="text-xl md:text-2xl font-bold mb-2">
-              {periodComparison ? formatWithCurrency(periodComparison.current.profit) : (
-                <Badge variant="secondary" className="text-xs">No Data</Badge>
-              )}
-            </div>
-            {periodComparison && (
-              <div className={`flex items-center gap-1 text-xs md:text-sm ${
-                periodComparison.growth.profit >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {periodComparison.growth.profit >= 0 ? (
-                  <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4" />
-                ) : (
-                  <ArrowDownLeft className="w-3 h-3 md:w-4 md:h-4" />
-                )}
-                <span className="font-medium">{formatGrowth(periodComparison.growth.profit)}</span>
-                <span className="text-muted-foreground hidden sm:inline">vs last {selectedPeriod}</span>
-              </div>
-            )}
-          </Card>
-
-          {/* Cash Flow */}
-          <Card className="p-4 md:p-6">
-            <div className="flex items-start justify-between mb-2">
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-secondary-light rounded-lg flex items-center justify-center">
-                <Repeat className="w-4 h-4 md:w-5 md:h-5 text-secondary" />
-              </div>
-            </div>
-            <h3 className="text-xs md:text-sm text-muted-foreground mb-1">Cash Flow</h3>
-            <div className="text-xl md:text-2xl font-bold mb-2">
-              {periodComparison ? formatWithCurrency(periodComparison.current.cashFlow) : (
-                <Badge variant="secondary" className="text-xs">No Data</Badge>
-              )}
-            </div>
-            {periodComparison && (
-              <div className={`flex items-center gap-1 text-xs md:text-sm ${
-                periodComparison.growth.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {periodComparison.growth.cashFlow >= 0 ? (
-                  <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4" />
-                ) : (
-                  <ArrowDownLeft className="w-3 h-3 md:w-4 md:h-4" />
-                )}
-                <span className="font-medium">{formatGrowth(periodComparison.growth.cashFlow)}</span>
-                <span className="text-muted-foreground hidden sm:inline">vs last {selectedPeriod}</span>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* Widgets Section */}
-        <Card className="p-4 md:p-6">
-          <h3 className="text-base md:text-lg mb-3 md:mb-4">Widgets</h3>
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 md:gap-6">
-            <div 
-              className="flex flex-col items-center gap-2 md:gap-3 cursor-pointer group"
-              onClick={() => toast.info("Buy feature coming soon!")}
-            >
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary-light rounded-full flex items-center justify-center group-hover:scale-105 transition-transform">
-                <img src={WalletIcon} alt="Wallet" className="w-5 h-5 md:w-6 md:h-6" />
-              </div>
-              <span className="text-xs md:text-sm font-medium text-foreground">Buy</span>
-            </div>
-            <div 
-              className="flex flex-col items-center gap-2 md:gap-3 cursor-pointer group"
-              onClick={() => toast.info("Sell feature coming soon!")}
-            >
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-secondary-light rounded-full flex items-center justify-center group-hover:scale-105 transition-transform">
-                <img src={SellIcon} alt="Sell" className="w-5 h-5 md:w-6 md:h-6" />
-              </div>
-              <span className="text-xs md:text-sm font-medium text-foreground">Sell</span>
-            </div>
-            <div 
-              className="flex flex-col items-center gap-2 md:gap-3 cursor-pointer group"
-              onClick={() => toast.info("Send feature coming soon!")}
-            >
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-light rounded-full flex items-center justify-center group-hover:scale-105 transition-transform">
-                <img src={SendIcon} alt="Send" className="w-5 h-5 md:w-6 md:h-6" />
-              </div>
-              <span className="text-xs md:text-sm font-medium text-foreground">Send</span>
-            </div>
-            <div 
-              className="flex flex-col items-center gap-2 md:gap-3 cursor-pointer group"
-              onClick={() => toast.info("Receive feature coming soon!")}
-            >
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-full flex items-center justify-center group-hover:scale-105 transition-transform">
-                <img src={ReceiveIcon} alt="Receive" className="w-5 h-5 md:w-6 md:h-6" />
-              </div>
-              <span className="text-xs md:text-sm font-medium text-foreground">Receive</span>
-            </div>
-            <div 
-              className="flex flex-col items-center gap-2 md:gap-3 cursor-pointer group col-span-3 sm:col-span-1"
-              onClick={() => toast.info("Swap feature coming soon!")}
-            >
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-light-5 rounded-full flex items-center justify-center group-hover:scale-105 transition-transform">
-                <img src={SwapIcon} alt="Swap" className="w-5 h-5 md:w-6 md:h-6" />
-              </div>
-              <span className="text-xs md:text-sm font-medium text-foreground">Swap</span>
-            </div>
-          </div>
-        </Card>
-
-        <div className="gap-4 md:gap-6">
-          {/* Account Balances */}
-          <Card className="p-4 md:p-6">
-            <div className="flex items-center justify-between mb-3 md:mb-4">
-              <h3 className="text-base md:text-lg">Account Balances</h3>
-            </div>
-            <div className="space-y-3 md:space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-7 h-7 md:w-8 md:h-8 bg-primary-light rounded-full flex items-center justify-center">
-                    <div className="w-3 h-3 md:w-4 md:h-4 bg-primary rounded-full" />
-                  </div>
-                  <span className="text-sm md:text-base font-medium">Main Account</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm md:text-base font-semibold">
-                    {revenue ? formatWithCurrency(revenue.amount) : <Badge variant="secondary" className="text-xs">No Data</Badge>}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{filters.currency}</div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-7 h-7 md:w-8 md:h-8 bg-secondary-light rounded-full flex items-center justify-center">
-                    <div className="w-3 h-3 md:w-4 md:h-4 bg-secondary rounded-full" />
-                  </div>
-                  <span className="text-sm md:text-base font-medium">Savings</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm md:text-base font-semibold">
-                    {cashFlow ? formatWithCurrency(Math.abs(cashFlow.amount || 0)) : <Badge variant="secondary" className="text-xs">No Data</Badge>}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{filters.currency}</div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-7 h-7 md:w-8 md:h-8 bg-teal-100 rounded-full flex items-center justify-center">
-                    <div className="w-3 h-3 md:w-4 md:h-4 bg-teal-500 rounded-full" />
-                  </div>
-                  <span className="text-sm md:text-base font-medium">Investment</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm md:text-base font-semibold">
-                    {profit ? formatWithCurrency(profit.amount) : <Badge variant="secondary" className="text-xs">No Data</Badge>}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{filters.currency}</div>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-        </div>
-
-        {/* Revenue vs Profit Chart */}
-        <RevenueProfitChart
-          data={revenueProfitData || []}
-          formatCurrency={formatWithCurrency}
-          onPointClick={handleChartPointClick}
-        />
-        
-        {/* Drill-down table */}
-        {drillDownParams && (
-          <RevenueDrillDownTable
-            data={drillDownData || []}
-            title={`Transactions - ${drillDownParams.startDate}${
-              drillDownParams.endDate !== drillDownParams.startDate ? ` to ${drillDownParams.endDate}` : ""
-            }`}
-            onClose={closeDrillDown}
-            isLoading={drillDownLoading}
-          />
-        )}
-
-        {/* Latest Transactions */}
-        <Card className="p-4 md:p-6">
-          <h3 className="text-base md:text-lg mb-3 md:mb-4">Latest Transactions</h3>
-          <div className="flex items-center justify-center py-6 md:py-8">
-            <Badge variant="secondary" className="text-xs md:text-sm">No Data</Badge>
-          </div>
-        </Card>
-
-        {/* Contacts & Address Book - Mobile/Tablet version */}
-        <Card 
-          className="p-4 md:p-6 cursor-pointer hover:shadow-md transition-shadow lg:hidden"
-          onClick={() => setContactsDialogOpen(true)}
-        >
-          <div className="flex items-center justify-between mb-3 md:mb-4">
-            <h3 className="text-base md:text-lg">Contacts & Address Book</h3>
-            <Button variant="ghost" size="sm">
-              View All
-            </Button>
-          </div>
-          {contactsLoading ? (
-            <div className="flex items-center justify-center py-3 md:py-4">
-              <div className="text-xs md:text-sm text-muted-foreground">Loading...</div>
-            </div>
-          ) : contacts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-3 md:py-4 text-center">
-              <p className="text-xs md:text-sm text-muted-foreground mb-3">No contacts yet</p>
-              <Button variant="outline" size="sm" onClick={(e) => {
-                e.stopPropagation();
-                setContactsDialogOpen(true);
-              }}>
-                <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                <span className="text-xs md:text-sm">Add your first contact</span>
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 md:gap-3">
-              <div 
-                className="flex flex-col items-center gap-1 cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setContactsDialogOpen(true);
-                }}
-              >
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-muted rounded-xl flex items-center justify-center hover:bg-muted-hover transition-colors">
-                  <Plus className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
-                </div>
-                <span className="text-xs text-muted-foreground">Add</span>
-              </div>
-              {contacts.slice(0, 4).map((contact) => (
-                <div 
-                  key={contact.id} 
-                  className="flex flex-col items-center gap-1"
+      {/* === Alerta: Configure seu salário (âmbar elegante) === */}
+      {semConfiguracao && (
+        <Card className="p-6 border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-900 dark:text-amber-300">
+                Configure seu salário
+              </h3>
+              <p className="text-sm text-amber-800 dark:text-amber-400 mt-1">
+                Vá em{" "}
+                <a
+                  href="/configuracoes"
+                  className="underline font-medium hover:opacity-80"
                 >
-                  <ContactAvatar
-                    name={contact.name}
-                    color={contact.avatar_color}
-                    className="w-8 h-8 md:w-10 md:h-10"
-                  />
-                  <span className="text-xs text-muted-foreground truncate max-w-[60px]">
-                    {contact.name.split(' ')[0]}
-                  </span>
-                </div>
-              ))}
+                  Configurações
+                </a>{" "}
+                para definir seu salário e o teto de gastos.
+              </p>
             </div>
-          )}
+          </div>
+        </Card>
+      )}
+
+      {/* Hero card — teto com semáforo */}
+      <Card className="p-6 overflow-hidden relative">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Teto de gastos do mês
+            </p>
+            <p className="text-3xl font-bold">{formatarMoeda(teto)}</p>
+            <p className={cn("text-sm font-medium", cores.text)}>
+              {cores.emoji} {labelSemaforo(status)} —{" "}
+              {formatarPercentual(percentualUsado)} usado
+            </p>
+          </div>
+
+          <div className="text-right space-y-1">
+            <p className="text-sm text-muted-foreground">Restante</p>
+            <p
+              className={cn(
+                "text-2xl font-bold",
+                restante > 0 ? "text-foreground" : "text-red-600"
+              )}
+            >
+              {formatarMoeda(restante)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              de {formatarMoeda(teto)}
+            </p>
+          </div>
+        </div>
+
+        {/* Barra de progresso */}
+        <div className="mt-5">
+          <Progress value={Math.min(percentualUsado, 100)} className="h-3" />
+          <div className="flex justify-between text-xs text-muted-foreground mt-2">
+            <span>0%</span>
+            <span>70%</span>
+            <span>100%</span>
+          </div>
+        </div>
+      </Card>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Receitas</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {formatarMoeda(totalReceitas)}
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-950/40 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Despesas</p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                {formatarMoeda(totalDespesas)}
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-950/40 flex items-center justify-center">
+              <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Saldo do mês</p>
+              <p
+                className={cn(
+                  "text-2xl font-bold",
+                  saldo >= 0
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                )}
+              >
+                {formatarMoeda(saldo)}
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-primary" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Salário base</p>
+              <p className="text-2xl font-bold">
+                {formatarMoeda(configuracao.salario)}
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Target className="w-5 h-5 text-primary" />
+            </div>
+          </div>
         </Card>
       </div>
 
-      {/* Right Sidebar - Desktop only */}
-      <div className="w-80 space-y-4 md:space-y-6 hidden lg:block">
-        {/* Real-time Notifications */}
-        <Card className="p-4 md:p-6">
-          <h3 className="text-base md:text-lg mb-2">Real-time notifications</h3>
-          <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">
-            Protect your accounts & finances with FinanceFlow's email & alerts notifications of all your financial transactions.
+      {/* Grid: gráfico de rosca + evolução 6 meses */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gráfico de rosca — categorias */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-1">
+            Gastos por categoria
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            {nomeMes(mesAtualStr)}
           </p>
-          <Button className="w-full text-xs md:text-sm" onClick={() => setNotificationDialogOpen(true)}>
-            Set up Notifications
-            <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 ml-2" />
-          </Button>
-        </Card>
 
-
-        {/* Contacts & Address Book (Right Sidebar) */}
-        <Card 
-          className="p-4 cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => setContactsDialogOpen(true)}
-        >
-          <h4 className="text-base md:text-lg mb-3">Contacts & Address Book</h4>
-          {contactsLoading ? (
-            <div className="flex items-center justify-center py-3 md:py-4">
-              <div className="text-xs md:text-sm text-muted-foreground">Loading...</div>
-            </div>
-          ) : contacts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-3 md:py-4 text-center">
-              <p className="text-xs md:text-sm text-muted-foreground mb-3">No contacts yet</p>
-              <Button variant="outline" size="sm" onClick={(e) => {
-                e.stopPropagation();
-                setContactsDialogOpen(true);
-              }}>
-                <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                <span className="text-xs md:text-sm">Add Contact</span>
-              </Button>
+          {!temDespesas ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <ShoppingCart className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Nenhuma despesa registrada este mês
+              </p>
             </div>
           ) : (
-            <div className="flex flex-wrap items-start gap-2">
-              <div 
-                className="flex flex-col items-center gap-1 cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setContactsDialogOpen(true);
-                }}
-              >
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-muted rounded-xl flex items-center justify-center hover:bg-muted-hover transition-colors">
-                  <Plus className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+            <div className="space-y-4">
+              <div className="relative h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={dadosRosca}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {dadosRosca.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">
+                      {formatarMoedaCompacta(totalDespesas)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Total de gastos
+                    </div>
+                  </div>
                 </div>
-                <span className="text-xs text-muted-foreground">Add</span>
               </div>
-              {contacts.slice(0, 5).map((contact) => (
-                <div 
-                  key={contact.id} 
-                  className="flex flex-col items-center gap-1"
+
+              <div className="space-y-2 border-t pt-4">
+                {gastosPorCategoria.slice(0, 6).map((g) => (
+                  <div
+                    key={g.categoriaId}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="w-3 h-3 rounded-sm flex-shrink-0"
+                        style={{ backgroundColor: g.cor }}
+                      />
+                      <span className="text-sm truncate">{g.nome}</span>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-xs text-muted-foreground">
+                        {formatarPercentual(g.percentual, 0)}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {formatarMoeda(g.valor)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {gastosPorCategoria.length > 6 && (
+                  <p className="text-xs text-muted-foreground text-center pt-2">
+                    +{gastosPorCategoria.length - 6} outras categorias
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Gráfico de linha — evolução 6 meses */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-1">
+            Evolução dos últimos 6 meses
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Receitas vs Despesas
+          </p>
+
+          {!temHistorico ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <TrendingUp className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Cadastre receitas e despesas para ver a evolução
+              </p>
+            </div>
+          ) : (
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={dadosEvolucao}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                 >
-                  <ContactAvatar
-                    name={contact.name}
-                    color={contact.avatar_color}
-                    className="w-8 h-8 md:w-10 md:h-10"
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--color-border)"
+                    opacity={0.3}
                   />
-                  <span className="text-xs text-muted-foreground truncate max-w-[60px]">
-                    {contact.name.split(' ')[0]}
-                  </span>
-                </div>
-              ))}
+                  <XAxis
+                    dataKey="label"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12 }}
+                    className="fill-muted-foreground"
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12 }}
+                    className="fill-muted-foreground"
+                    tickFormatter={(value) => formatarMoedaCompacta(value)}
+                    width={70}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend
+                    wrapperStyle={{ paddingTop: "10px" }}
+                    iconType="line"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="receitas"
+                    stroke="#22c55e"
+                    strokeWidth={3}
+                    dot={{ fill: "#22c55e", r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="Receitas"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="despesas"
+                    stroke="#ef4444"
+                    strokeWidth={3}
+                    dot={{ fill: "#ef4444", r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="Despesas"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           )}
         </Card>
       </div>
 
-      <ContactsDialog 
-        open={contactsDialogOpen}
-        onOpenChange={setContactsDialogOpen}
-      />
-      <NotificationSettingsDialog
-        open={notificationDialogOpen}
-        onOpenChange={setNotificationDialogOpen}
-      />
-    </div>;
+      {/* Grid: gastos detalhados + últimas transações */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Gastos por categoria (lista) */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">
+            Detalhamento por categoria
+          </h3>
+          {gastosPorCategoria.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Nenhuma despesa registrada este mês
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {gastosPorCategoria.map((g) => {
+                const Icone = ICONES[g.icone] ?? MoreHorizontal;
+                return (
+                  <div key={g.categoriaId} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: `${g.cor}20` }}
+                        >
+                          <Icone
+                            className="w-4 h-4"
+                            // @ts-ignore — cor dinâmica
+                            style={{ color: g.cor }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium">{g.nome}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-semibold">
+                          {formatarMoeda(g.valor)}
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {formatarPercentual(g.percentual, 0)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${g.percentual}%`,
+                          backgroundColor: g.cor,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* Últimas transações */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Últimas transações</h3>
+          {ultimasTransacoes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Nenhuma transação registrada
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {ultimasTransacoes.map((t) => {
+                const isReceita = t.tipo === "receita";
+                const categoria = !isReceita
+                  ? categorias.find(
+                      (c) => c.id === (t.item as Despesa).categoriaId
+                    )
+                  : null;
+
+                return (
+                  <div
+                    key={t.item.id}
+                    className="flex items-center justify-between py-2"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={cn(
+                          "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
+                          isReceita
+                            ? "bg-green-100 dark:bg-green-950/40"
+                            : "bg-red-100 dark:bg-red-950/40"
+                        )}
+                      >
+                        {isReceita ? (
+                          <ArrowUpRight className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <ArrowDownLeft className="w-4 h-4 text-red-600 dark:text-red-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {t.item.descricao}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {categoria ? `${categoria.nome} • ` : ""}
+                          {formatarDataCurta(t.item.data)}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={cn(
+                        "text-sm font-semibold whitespace-nowrap ml-2",
+                        isReceita
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      )}
+                    >
+                      {isReceita ? "+" : "-"}
+                      {formatarMoeda(t.item.valor)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Badge de status (rodapé) */}
+      <div className="flex justify-center">
+        <Badge
+          variant="secondary"
+          className={cn("px-4 py-2 text-sm", cores.bg, cores.text, cores.border)}
+        >
+          {cores.emoji} Status: {labelSemaforo(status)}
+        </Badge>
+      </div>
+    </div>
+  );
 }

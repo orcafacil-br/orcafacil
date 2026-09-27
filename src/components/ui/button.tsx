@@ -9,17 +9,23 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-hover shadow-sm hover:shadow-md",
-        secondary: "bg-muted text-muted-foreground hover:bg-muted-hover active:bg-muted-active border border-border",
-        tertiary: "text-primary hover:bg-primary-light-20 active:bg-primary-light",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive-hover active:bg-destructive shadow-sm",
-        outline: "border border-border bg-background text-foreground hover:bg-muted-hover active:bg-muted-hover",
-        ghost: "hover:bg-muted-hover active:bg-muted-hover text-muted-foreground",
+        default:
+          "btn-3d bg-primary text-primary-foreground",
+        secondary:
+          "btn-3d-outline bg-secondary text-secondary-foreground",
+        tertiary:
+          "text-primary hover:bg-primary-light-20 active:bg-primary-light",
+        destructive:
+          "btn-3d bg-destructive text-destructive-foreground",
+        outline:
+          "btn-3d-outline bg-background text-foreground",
+        ghost:
+          "hover:bg-muted-hover active:bg-muted-hover text-muted-foreground",
         link: "text-primary underline-offset-4 hover:underline p-0 h-auto",
       },
       size: {
         sm: "h-8 px-3 typo-button-small rounded-md [&_svg]:size-3",
-        default: "h-10 px-4 typo-button rounded-lg [&_svg]:size-4", 
+        default: "h-10 px-4 typo-button rounded-lg [&_svg]:size-4",
         lg: "h-12 px-6 typo-button rounded-lg [&_svg]:size-5",
         icon: "h-10 w-10 rounded-lg [&_svg]:size-4",
         "icon-sm": "h-8 w-8 rounded-md [&_svg]:size-3",
@@ -42,7 +48,13 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    );
   },
 );
 Button.displayName = "Button";
