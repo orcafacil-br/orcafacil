@@ -22,7 +22,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename="/orcafacil">
         <AuthWrapper>
           <Routes>
             <Route path="/" element={
