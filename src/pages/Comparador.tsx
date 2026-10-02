@@ -32,21 +32,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Plus,
-  Trash2,
   ShoppingCart,
   TrendingDown,
   Award,
-  Store,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useFinanceStore } from "@/store/useFinanceStore";
-import { calcularSemaforo, type ItemOrcamento } from "@/types/finance";
+import { type TipoPagamento } from "@/types/finance";
+import { ItemOrcamentoCard } from "@/components/ItemOrcamentoCard";
 import {
   formatarMoeda,
-  formatarDataCurta,
   formatarInputMoeda,
   parsearMoedaBR,
   hojeISO,
@@ -67,7 +63,6 @@ export default function Comparador() {
     removerPreco,
   } = useFinanceStore();
 
-  // === Estado dos modais ===
   const [novoItemOpen, setNovoItemOpen] = useState(false);
   const [novoPrecoItem, setNovoPrecoItem] = useState<string | null>(null);
   const [itemParaRemover, setItemParaRemover] = useState<string | null>(null);
@@ -78,10 +73,17 @@ export default function Comparador() {
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
 
   // === Formulário: Novo Item ===
-  const [formItem, setFormItem] = useState({
+  const [formItem, setFormItem] = useState<{
+    nome: string;
+    categoriaId: string;
+    subcategoriaId: string;
+    tipo: TipoPagamento;
+    observacao: string;
+  }>({
     nome: "",
     categoriaId: "",
     subcategoriaId: "",
+    tipo: "variavel",
     observacao: "",
   });
 
@@ -93,12 +95,10 @@ export default function Comparador() {
     observacao: "",
   });
 
-  // === Categoria selecionada ===
   const categoriaSelecionada = useMemo(() => {
     return categorias.find((c) => c.id === formItem.categoriaId) || null;
   }, [formItem.categoriaId, categorias]);
 
-  // === Helpers ===
   const toggleExpandido = (id: string) => {
     const novo = new Set(expandidos);
     if (novo.has(id)) novo.delete(id);
@@ -112,6 +112,7 @@ export default function Comparador() {
       nome: "",
       categoriaId: "",
       subcategoriaId: "",
+      tipo: "variavel",
       observacao: "",
     });
     setNovoItemOpen(true);
@@ -131,6 +132,7 @@ export default function Comparador() {
       nome: formItem.nome.trim(),
       categoriaId: formItem.categoriaId,
       subcategoriaId: formItem.subcategoriaId || "",
+      tipo: formItem.tipo,
       precos: [],
       observacao: formItem.observacao.trim() || undefined,
     });
@@ -149,16 +151,10 @@ export default function Comparador() {
 
   // === Handlers: Preço ===
   const handleAbrirNovoPreco = (itemId: string) => {
-    setFormPreco({
-      mercado: "",
-      valor: "",
-      data: hojeISO(),
-      observacao: "",
-    });
+    setFormPreco({ mercado: "", valor: "", data: hojeISO(), observacao: "" });
     setNovoPrecoItem(itemId);
   };
 
-  // === 🆕 Handler do valor com máscara ===
   const handleValorChange = (valorDigitado: string) => {
     const formatado = formatarInputMoeda(valorDigitado);
     setFormPreco({ ...formPreco, valor: formatado });
@@ -170,7 +166,6 @@ export default function Comparador() {
       toast.error("Digite o nome do mercado.");
       return;
     }
-
     const valorNum = parsearMoedaBR(formPreco.valor);
     if (!valorNum || valorNum <= 0) {
       toast.error("Digite um valor válido.");
@@ -196,50 +191,8 @@ export default function Comparador() {
     }
   };
 
-  // === Análise ===
-  const analisarItem = (item: ItemOrcamento) => {
-    if (item.precos.length === 0) return null;
-
-    const precosOrdenados = [...item.precos].sort((a, b) => a.valor - b.valor);
-    const melhor = precosOrdenados[0];
-    const pior = precosOrdenados[precosOrdenados.length - 1];
-    const economia = pior.valor - melhor.valor;
-    const economiaPercentual =
-      pior.valor > 0 ? (economia / pior.valor) * 100 : 0;
-
-    let status: "verde" | "amarelo" | "vermelho";
-    let label: string;
-
-    if (item.precos.length === 1) {
-      status = "amarelo";
-      label = "Adicione mais preços para comparar";
-    } else if (economiaPercentual >= 20) {
-      status = "verde";
-      label = "Economia significativa";
-    } else if (economiaPercentual >= 10) {
-      status = "amarelo";
-      label = "Economia moderada";
-    } else {
-      status = "vermelho";
-      label = "Pouca diferença";
-    }
-
-    return {
-      melhor,
-      pior,
-      economia,
-      economiaPercentual,
-      status,
-      label,
-      precosOrdenados,
-    };
-  };
-
   const totalItens = itensOrcamento.length;
-  const totalPrecos = itensOrcamento.reduce(
-    (s, i) => s + i.precos.length,
-    0
-  );
+  const totalPrecos = itensOrcamento.reduce((s, i) => s + i.precos.length, 0);
 
   const economiaTotal = useMemo(() => {
     return itensOrcamento.reduce((soma, item) => {
@@ -251,14 +204,18 @@ export default function Comparador() {
     }, 0);
   }, [itensOrcamento]);
 
+  // === Separa por tipo ===
+  const itensFixos = itensOrcamento.filter((i) => i.tipo === "fixo");
+  const itensVariaveis = itensOrcamento.filter((i) => i.tipo === "variavel");
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Comparador</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Orçamento</h1>
           <p className="text-muted-foreground">
-            Cadastre itens e compare preços entre mercados
+            Cadastre itens fixos e variáveis do seu mês
           </p>
         </div>
         <Button onClick={handleAbrirNovoItem}>
@@ -277,8 +234,9 @@ export default function Comparador() {
               </p>
               <p className="text-2xl font-bold">{totalItens}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {totalPrecos} preço{totalPrecos !== 1 ? "s" : ""} registrado
-                {totalPrecos !== 1 ? "s" : ""}
+                {itensFixos.length} fixo{itensFixos.length !== 1 ? "s" : ""} •{" "}
+                {itensVariaveis.length} variáve
+                {itensVariaveis.length !== 1 ? "is" : "l"}
               </p>
             </div>
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -342,7 +300,7 @@ export default function Comparador() {
         </Card>
       </div>
 
-      {/* Lista de itens */}
+      {/* Lista por seção */}
       {itensOrcamento.length === 0 ? (
         <Card className="p-12 text-center">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
@@ -359,270 +317,90 @@ export default function Comparador() {
           </Button>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {itensOrcamento.map((item) => {
-            const analise = analisarItem(item);
-            const expandido = expandidos.has(item.id);
-            const categoria = categorias.find(
-              (c) => c.id === item.categoriaId
-            );
-            const subcategoria = categoria?.subcategorias.find(
-              (s) => s.id === item.subcategoriaId
-            );
+        <div className="space-y-8">
+          {/* === Itens FIXOS === */}
+          {itensFixos.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Wallet className="w-5 h-5 text-foreground" />
+                <h2 className="text-lg font-semibold">Itens Fixos</h2>
+                <Badge variant="outline" className="ml-2">
+                  {itensFixos.length}
+                </Badge>
+              </div>
+              <div className="space-y-4">
+                {itensFixos.map((item) => {
+                  const categoria = categorias.find(
+                    (c) => c.id === item.categoriaId
+                  );
+                  const subcategoriaNome = categoria?.subcategorias.find(
+                    (s) => s.id === item.subcategoriaId
+                  )?.nome;
 
-            return (
-              <Card key={item.id} className="overflow-hidden">
-                {/* Cabeçalho do item */}
-                <div
-                  className="p-5 cursor-pointer hover:bg-muted/30 transition-colors"
-                  onClick={() => toggleExpandido(item.id)}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{
-                          backgroundColor: `${categoria?.cor ?? "#9B5DE5"}20`,
-                        }}
-                      >
-                        <ShoppingCart
-                          className="w-6 h-6"
-                          // @ts-ignore
-                          style={{ color: categoria?.cor ?? "#9B5DE5" }}
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-base truncate">
-                          {item.nome}
-                        </h3>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {categoria?.nome}
-                          {subcategoria && ` › ${subcategoria.nome}`} •{" "}
-                          {item.precos.length} preço
-                          {item.precos.length !== 1 ? "s" : ""}
-                        </p>
-                        {item.observacao && (
-                          <p className="text-xs text-muted-foreground italic mt-1">
-                            "{item.observacao}"
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                  return (
+                    <ItemOrcamentoCard
+                      key={item.id}
+                      item={item}
+                      categoria={categoria}
+                      subcategoriaNome={subcategoriaNome}
+                      expandido={expandidos.has(item.id)}
+                      onToggleExpandir={() => toggleExpandido(item.id)}
+                      onRemoverItem={() => setItemParaRemover(item.id)}
+                      onAdicionarPreco={() => handleAbrirNovoPreco(item.id)}
+                      onRemoverPreco={(precoId) =>
+                        setPrecoParaRemover({ itemId: item.id, precoId })
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-                    <div className="flex items-center gap-2">
-                      {analise && (
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "text-xs whitespace-nowrap",
-                            analise.status === "verde" &&
-                              "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400",
-                            analise.status === "amarelo" &&
-                              "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",
-                            analise.status === "vermelho" &&
-                              "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400"
-                          )}
-                        >
-                          {analise.status === "verde" && "🟢"}
-                          {analise.status === "amarelo" && "🟡"}
-                          {analise.status === "vermelho" && "🔴"}{" "}
-                          {formatarMoeda(analise.melhor.valor)}
-                        </Badge>
-                      )}
+          {/* === Itens VARIÁVEIS === */}
+          {itensVariaveis.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <ShoppingCart className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <h2 className="text-lg font-semibold">Itens Variáveis</h2>
+                <Badge variant="outline" className="ml-2">
+                  {itensVariaveis.length}
+                </Badge>
+              </div>
+              <div className="space-y-4">
+                {itensVariaveis.map((item) => {
+                  const categoria = categorias.find(
+                    (c) => c.id === item.categoriaId
+                  );
+                  const subcategoriaNome = categoria?.subcategorias.find(
+                    (s) => s.id === item.subcategoriaId
+                  )?.nome;
 
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setItemParaRemover(item.id);
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-
-                      {expandido ? (
-                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Detalhes expandidos */}
-                {expandido && (
-                  <div className="border-t bg-muted/20 p-5 space-y-4">
-                    {analise && analise.melhor && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
-                          <p className="text-xs text-green-700 dark:text-green-400 font-medium mb-1">
-                            🟢 Melhor preço
-                          </p>
-                          <p className="font-bold text-sm">
-                            {formatarMoeda(analise.melhor.valor)}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {analise.melhor.mercado}
-                          </p>
-                        </div>
-                        <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-900">
-                          <p className="text-xs text-red-700 dark:text-red-400 font-medium mb-1">
-                            🔴 Pior preço
-                          </p>
-                          <p className="font-bold text-sm">
-                            {formatarMoeda(analise.pior.valor)}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {analise.pior.mercado}
-                          </p>
-                        </div>
-                        <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                          <p className="text-xs text-primary font-medium mb-1">
-                            💰 Economia
-                          </p>
-                          <p className="font-bold text-sm">
-                            {formatarMoeda(analise.economia)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {analise.economiaPercentual.toFixed(0)}% do maior
-                          </p>
-                        </div>
-                        <div
-                          className={cn(
-                            "p-3 rounded-lg border",
-                            analise.status === "verde" &&
-                              "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900",
-                            analise.status === "amarelo" &&
-                              "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900",
-                            analise.status === "vermelho" &&
-                              "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900"
-                          )}
-                        >
-                          <p className="text-xs font-medium mb-1">
-                            Recomendação
-                          </p>
-                          <p className="font-bold text-xs">
-                            {analise.status === "verde" && "Pode comprar 👍"}
-                            {analise.status === "amarelo" && "Cuidado ⚠️"}
-                            {analise.status === "vermelho" && "Atenção 🔴"}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {analise.label}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Lista de preços */}
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-medium">
-                          Preços registrados
-                        </h4>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAbrirNovoPreco(item.id);
-                          }}
-                        >
-                          <Plus className="w-3 h-3 mr-1" />
-                          Adicionar preço
-                        </Button>
-                      </div>
-
-                      {item.precos.length === 0 ? (
-                        <div className="text-center py-6 text-sm text-muted-foreground">
-                          Nenhum preço cadastrado. Adicione o primeiro!
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {[...item.precos]
-                            .sort((a, b) => a.valor - b.valor)
-                            .map((preco) => {
-                              const ehMaisBarato =
-                                analise &&
-                                preco.id === analise.melhor.id &&
-                                item.precos.length > 1;
-                              return (
-                                <div
-                                  key={preco.id}
-                                  className={cn(
-                                    "flex items-center justify-between p-3 rounded-lg group",
-                                    ehMaisBarato
-                                      ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900"
-                                      : "bg-background border border-border"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                                    {ehMaisBarato && (
-                                      <Award className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                                    )}
-                                    <Store className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                                    <div className="min-w-0 flex-1">
-                                      <p className="font-medium text-sm truncate">
-                                        {preco.mercado}
-                                      </p>
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <Calendar className="w-3 h-3" />
-                                        <span>
-                                          {formatarDataCurta(preco.data)}
-                                        </span>
-                                        {preco.observacao && (
-                                          <>
-                                            <span>•</span>
-                                            <span className="italic truncate">
-                                              {preco.observacao}
-                                            </span>
-                                          </>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span
-                                      className={cn(
-                                        "font-semibold text-sm whitespace-nowrap",
-                                        ehMaisBarato &&
-                                          "text-green-600 dark:text-green-400"
-                                      )}
-                                    >
-                                      {formatarMoeda(preco.valor)}
-                                    </span>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPrecoParaRemover({
-                                          itemId: item.id,
-                                          precoId: preco.id,
-                                        });
-                                      }}
-                                    >
-                                      <Trash2 className="w-3 h-3 text-destructive" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </Card>
-            );
-          })}
+                  return (
+                    <ItemOrcamentoCard
+                      key={item.id}
+                      item={item}
+                      categoria={categoria}
+                      subcategoriaNome={subcategoriaNome}
+                      expandido={expandidos.has(item.id)}
+                      onToggleExpandir={() => toggleExpandido(item.id)}
+                      onRemoverItem={() => setItemParaRemover(item.id)}
+                      onAdicionarPreco={() => handleAbrirNovoPreco(item.id)}
+                      onRemoverPreco={(precoId) =>
+                        setPrecoParaRemover({ itemId: item.id, precoId })
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Modal: Novo Item */}
       <Dialog open={novoItemOpen} onOpenChange={setNovoItemOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Item</DialogTitle>
             <DialogDescription>
@@ -635,12 +413,52 @@ export default function Comparador() {
               <Label htmlFor="nome-item">Nome do item *</Label>
               <Input
                 id="nome-item"
-                placeholder="Ex: Arroz 5kg"
+                placeholder="Ex: Arroz 5kg ou Financiamento do carro"
                 value={formItem.nome}
                 onChange={(e) =>
                   setFormItem({ ...formItem, nome: e.target.value })
                 }
               />
+            </div>
+
+            {/* Tipo de pagamento */}
+            <div className="space-y-2">
+              <Label>Tipo de pagamento *</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormItem({ ...formItem, tipo: "variavel" })
+                  }
+                  className={cn(
+                    "flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all",
+                    formItem.tipo === "variavel"
+                      ? "border-purple-500 bg-purple-50 dark:bg-purple-950/30"
+                      : "border-border hover:border-purple-300"
+                  )}
+                >
+                  <span>🛒</span>
+                  <span className="text-sm font-medium">Variável</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormItem({ ...formItem, tipo: "fixo" })}
+                  className={cn(
+                    "flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all",
+                    formItem.tipo === "fixo"
+                      ? "border-foreground bg-muted"
+                      : "border-border hover:border-foreground/50"
+                  )}
+                >
+                  <span>💰</span>
+                  <span className="text-sm font-medium">Fixo</span>
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {formItem.tipo === "variavel"
+                  ? "Itens do dia a dia: supermercado, farmácia, restaurante..."
+                  : "Itens com valor fixo: financiamento, aluguel, mensalidade..."}
+              </p>
             </div>
 
             <div className="space-y-2">

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import {
   TrendingUp,
   TrendingDown,
@@ -18,6 +19,7 @@ import {
   Wrench,
   MoreHorizontal,
   AlertTriangle,
+  ChevronRight,
 } from "lucide-react";
 import {
   PieChart,
@@ -32,6 +34,7 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
+import { Link } from "react-router-dom";
 import { useFinanceStore } from "@/store/useFinanceStore";
 import {
   calcularTeto,
@@ -50,10 +53,6 @@ import {
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-// ------------------------------------------------------------
-// Mapa de ícones
-// ------------------------------------------------------------
-
 const ICONES: Record<string, React.ComponentType<{ className?: string }>> = {
   ShoppingCart,
   Wrench,
@@ -65,17 +64,11 @@ const ICONES: Record<string, React.ComponentType<{ className?: string }>> = {
   MoreHorizontal,
 };
 
-// ------------------------------------------------------------
-// Página
-// ------------------------------------------------------------
-
 export default function Overview() {
-  const { configuracao, receitas, despesas, categorias } = useFinanceStore();
+  const { configuracao, receitas, despesas, categorias, itensOrcamento } =
+    useFinanceStore();
 
-  // === Teto ===
   const teto = calcularTeto(configuracao);
-
-  // === Mês atual ===
   const mesAtualStr = mesAtual();
 
   const receitasMes = useMemo(
@@ -88,16 +81,37 @@ export default function Overview() {
     [despesas, mesAtualStr]
   );
 
-  // === Totais ===
   const totalReceitas = receitasMes.reduce((s, r) => s + r.valor, 0);
   const totalDespesas = despesasMes.reduce((s, d) => s + d.valor, 0);
   const saldo = totalReceitas - totalDespesas;
 
-  // === Semáforo ===
   const percentualUsado = teto > 0 ? (totalDespesas / teto) * 100 : 0;
   const status = calcularSemaforo(percentualUsado);
   const cores = corSemaforo(status);
   const restante = Math.max(teto - totalDespesas, 0);
+
+  // === 🆕 Orçamento: projeção ===
+  const itensComPreco = itensOrcamento.filter((i) => i.precos.length > 0);
+
+  const itensComMelhorPreco = useMemo(() => {
+    return itensComPreco.map((item) => {
+      const melhor = [...item.precos].sort((a, b) => a.valor - b.valor)[0];
+      const cat = categorias.find((c) => c.id === item.categoriaId);
+      return {
+        ...item,
+        melhorPreco: melhor.valor,
+        melhorMercado: melhor.mercado,
+        categoria: cat,
+      };
+    });
+  }, [itensComPreco, categorias]);
+
+  const totalOrcamento = itensComMelhorPreco.reduce(
+    (s, i) => s + i.melhorPreco,
+    0
+  );
+  const sobraProjetada = teto - totalOrcamento;
+  const percentualOrcamento = teto > 0 ? (totalOrcamento / teto) * 100 : 0;
 
   // === Gastos por categoria ===
   const gastosPorCategoria = useMemo(() => {
@@ -120,7 +134,6 @@ export default function Overview() {
       .sort((a, b) => b.valor - a.valor);
   }, [despesasMes, categorias, totalDespesas]);
 
-  // === Dados do gráfico de rosca ===
   const dadosRosca = useMemo(
     () =>
       gastosPorCategoria.map((g) => ({
@@ -131,7 +144,6 @@ export default function Overview() {
     [gastosPorCategoria]
   );
 
-  // === Últimos 6 meses (evolução) ===
   const dadosEvolucao = useMemo(() => {
     const meses: Array<{
       mes: string;
@@ -166,7 +178,6 @@ export default function Overview() {
     return meses;
   }, [receitas, despesas]);
 
-  // === Últimas transações ===
   const ultimasTransacoes = useMemo(() => {
     const lista: Array<
       | { tipo: "receita"; item: (typeof receitas)[0] }
@@ -183,14 +194,13 @@ export default function Overview() {
       .slice(0, 5);
   }, [receitas, despesas]);
 
-  // === Estado vazio ===
   const semConfiguracao = configuracao.salario === 0;
   const temDespesas = despesasMes.length > 0;
   const temHistorico = dadosEvolucao.some(
     (d) => d.receitas > 0 || d.despesas > 0
   );
+  const temOrcamento = itensComMelhorPreco.length > 0;
 
-  // === Tooltip customizado ===
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -226,7 +236,7 @@ export default function Overview() {
         </p>
       </div>
 
-      {/* === Alerta: Configure seu salário (âmbar elegante) === */}
+      {/* Alerta salário */}
       {semConfiguracao && (
         <Card className="p-6 border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
           <div className="flex items-start gap-3">
@@ -237,12 +247,12 @@ export default function Overview() {
               </h3>
               <p className="text-sm text-amber-800 dark:text-amber-400 mt-1">
                 Vá em{" "}
-                <a
-                  href="/configuracoes"
+                <Link
+                  to="/configuracoes"
                   className="underline font-medium hover:opacity-80"
                 >
                   Configurações
-                </a>{" "}
+                </Link>{" "}
                 para definir seu salário e o teto de gastos.
               </p>
             </div>
@@ -250,7 +260,7 @@ export default function Overview() {
         </Card>
       )}
 
-      {/* Hero card — teto com semáforo */}
+      {/* Hero card — teto */}
       <Card className="p-6 overflow-hidden relative">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-1">
@@ -281,7 +291,6 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* Barra de progresso */}
         <div className="mt-5">
           <Progress value={Math.min(percentualUsado, 100)} className="h-3" />
           <div className="flex justify-between text-xs text-muted-foreground mt-2">
@@ -358,13 +367,155 @@ export default function Overview() {
         </Card>
       </div>
 
-      {/* Grid: gráfico de rosca + evolução 6 meses */}
+      {/* === 🆕 SEÇÃO ORÇAMENTO === */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold">Orçamento do mês</h3>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/comparador">
+              Ver todos <ChevronRight className="w-4 h-4 ml-1" />
+            </Link>
+          </Button>
+        </div>
+
+        {!temOrcamento ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-3">
+              <ShoppingCart className="w-7 h-7 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Nenhum item cadastrado no orçamento ainda.
+            </p>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/comparador">
+                Cadastrar itens <ChevronRight className="w-4 h-4 ml-1" />
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {/* Resumo */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <p className="text-xs text-muted-foreground mb-1">
+                  Total do orçamento
+                </p>
+                <p className="text-xl font-bold">{formatarMoeda(totalOrcamento)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {itensComMelhorPreco.length} item
+                  {itensComMelhorPreco.length !== 1 ? "s" : ""} (melhor preço)
+                </p>
+              </div>
+
+              <div
+                className={cn(
+                  "p-4 rounded-lg border",
+                  sobraProjetada >= 0
+                    ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900"
+                    : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900"
+                )}
+              >
+                <p className="text-xs text-muted-foreground mb-1">
+                  {sobraProjetada >= 0 ? "Sobra projetada" : "Falta"}
+                </p>
+                <p
+                  className={cn(
+                    "text-xl font-bold",
+                    sobraProjetada >= 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  )}
+                >
+                  {formatarMoeda(Math.abs(sobraProjetada))}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  após pagar os itens
+                </p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <p className="text-xs text-muted-foreground mb-1">
+                  Uso do teto
+                </p>
+                <p className="text-xl font-bold">
+                  {formatarPercentual(percentualOrcamento, 0)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  de {formatarMoeda(teto)}
+                </p>
+              </div>
+            </div>
+
+            {/* Barra de progresso */}
+            <div>
+              <Progress
+                value={Math.min(percentualOrcamento, 100)}
+                className="h-2"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>R$ 0</span>
+                <span>{formatarMoeda(teto)}</span>
+              </div>
+            </div>
+
+            {/* Lista de itens */}
+            <div className="space-y-2">
+              {itensComMelhorPreco.slice(0, 5).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div
+                      className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{
+                        backgroundColor: `${item.categoria?.cor ?? "#9B5DE5"}20`,
+                      }}
+                    >
+                      <ShoppingCart
+                        className="w-4 h-4"
+                        // @ts-ignore
+                        style={{ color: item.categoria?.cor ?? "#9B5DE5" }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {item.nome}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {item.categoria?.nome} • {item.melhorMercado}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold whitespace-nowrap ml-2">
+                    {formatarMoeda(item.melhorPreco)}
+                  </span>
+                </div>
+              ))}
+
+              {itensComMelhorPreco.length > 5 && (
+                <p className="text-xs text-muted-foreground text-center pt-2">
+                  +{itensComMelhorPreco.length - 5} outros itens —{" "}
+                  <Link
+                    to="/comparador"
+                    className="text-primary underline hover:opacity-80"
+                  >
+                    ver todos
+                  </Link>
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Grid: rosca + evolução */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de rosca — categorias */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-1">
-            Gastos por categoria
-          </h3>
+          <h3 className="text-lg font-semibold mb-1">Gastos por categoria</h3>
           <p className="text-sm text-muted-foreground mb-4">
             {nomeMes(mesAtualStr)}
           </p>
@@ -435,17 +586,11 @@ export default function Overview() {
                     </div>
                   </div>
                 ))}
-                {gastosPorCategoria.length > 6 && (
-                  <p className="text-xs text-muted-foreground text-center pt-2">
-                    +{gastosPorCategoria.length - 6} outras categorias
-                  </p>
-                )}
               </div>
             </div>
           )}
         </Card>
 
-        {/* Gráfico de linha — evolução 6 meses */}
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-1">
             Evolução dos últimos 6 meses
@@ -520,9 +665,8 @@ export default function Overview() {
         </Card>
       </div>
 
-      {/* Grid: gastos detalhados + últimas transações */}
+      {/* Grid: detalhamento + últimas transações */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gastos por categoria (lista) */}
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">
             Detalhamento por categoria
@@ -547,7 +691,7 @@ export default function Overview() {
                         >
                           <Icone
                             className="w-4 h-4"
-                            // @ts-ignore — cor dinâmica
+                            // @ts-ignore
                             style={{ color: g.cor }}
                           />
                         </div>
@@ -578,7 +722,6 @@ export default function Overview() {
           )}
         </Card>
 
-        {/* Últimas transações */}
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Últimas transações</h3>
           {ultimasTransacoes.length === 0 ? (
@@ -646,7 +789,7 @@ export default function Overview() {
         </Card>
       </div>
 
-      {/* Badge de status (rodapé) */}
+      {/* Badge de status */}
       <div className="flex justify-center">
         <Badge
           variant="secondary"
